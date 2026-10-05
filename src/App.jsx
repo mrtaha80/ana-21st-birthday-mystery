@@ -1,20 +1,280 @@
-import {useEffect,useState} from 'react';import './style.css';import qr from './secret-qr.svg';
-const S='our-universe',M=[['home','⌂','جهانِ ما'],['timeline','↗','خطِ زمان'],['atlas','⌖','اطلسِ ما'],['vault','▧','صندوق خاطره'],['letters','✉','نامه‌ها'],['games','✳','بازی‌ها'],['settings','⚙','تنظیمات']],initial={start:'',mood:{taha:'🫶',ana:'🌙'},events:[{id:'trip',date:'2026-10-14',title:'اولین سفرِ طاها به اصفهان',text:'یک مقصد که از خود شهر قشنگ‌تره.',future:true}],places:['اصفهان'],photos:[],letters:[],wishes:['قدم‌زدن کنار زاینده‌رود','عکسِ دونفره','کشفِ کافه‌ی تازه'].map(text=>({id:crypto.randomUUID(),text,done:false})),calm:false};
-const QUESTIONS=[['لقبِ آنا چیه؟',['گورخر','کروکدیل','پناه'],0],['طاها راهیِ کدوم شهره؟',['شیراز','اصفهان','رشت'],1],['کروکدیل آنا رو چی صدا می‌کنه؟',['دلبرم','جوجو','هر دو'],2]];const read=()=>{try{return{...initial,...JSON.parse(localStorage.getItem(S)||'{}')}}catch{return initial}};
-export default function App(){const[data,D]=useState(read),[tab,T]=useState('home'),[qrOpen,Q]=useState(false),[title,H]=useState(''),[text,Y]=useState(''),[quiz,Z]=useState(0),[score,G]=useState(0),[spin,F]=useState('');
-useEffect(()=>{document.documentElement.classList.toggle('calm',data.calm);try{localStorage.setItem(S,JSON.stringify(data))}catch{}},[data]);
-const change=(key,val)=>D(d=>({...d,[key]:typeof val==='function'?val(d[key]):val}));const name=data.profile==='ana'?'آنا':'طاها';const today=new Date();
-const addEvent=e=>{e.preventDefault();if(!title)return;change('events',xs=>[...xs,{id:crypto.randomUUID(),title,text,date:new Date().toISOString().slice(0,10)}]);H('');Y('')};
-const addPhoto=async e=>{e.preventDefault();if(!title)return;const f=e.target.photo.files[0];let photo='';if(f){photo=await new Promise(resolve=>{const i=new Image(),r=new FileReader();r.onload=()=>{i.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,700/Math.max(i.width,i.height));c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.65))};i.src=r.result};r.readAsDataURL(f)});}change('photos',xs=>[{id:crypto.randomUUID(),title,text,photo,date:new Date().toISOString().slice(0,10)},...xs]);H('');Y('')};
-const addLetter=e=>{e.preventDefault();change('letters',xs=>[{id:crypto.randomUUID(),title,text,unlock:e.target.unlock.value},...xs]);H('');Y('')};
-const backup=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='taha-ana-backup.json';a.click();URL.revokeObjectURL(a.href)};
-return <div className="app" dir="rtl"><aside><div className="mark">A✳T <small>دنیای دونفره</small></div><div className="pair"><span>ط</span>∞<span>آ</span></div><nav>{M.map(([k,i,n])=><button className={tab===k?'active':''} onClick={()=>{T(k);window.scrollTo(0,0)}} key={k}><i>{i}</i>{n}</button>)}</nav><button className="calm" onClick={()=>change('calm',!data.calm)}>{data.calm?'حالت آرام ✓':'حالت آرام'}</button></aside><main><header><span className="eyebrow">● دنیای کوچیکِ طاها و آنا</span><span className="status">ذخیره روی همین دستگاه · {name}</span></header>
-{tab==='home'&&<><section className="hero"><button className="seal" onClick={()=>Q(!qrOpen)}>۲۲<small>مهر</small></button><div className="copy"><small>جایی برای قصه‌ی ما</small><h1>دو نفر،<br/><em>یک جهانِ کوچک.</em></h1><p>این‌جا قرار نیست چیزی رو ثابت کنیم؛ فقط یه گوشه‌ی امن برای نگه‌داشتنِ چیزهای قشنگه.</p><button className="gold" onClick={()=>T('timeline')}>رفتن به خطِ زمان ←</button></div><div className="orbit"><i/><span className="zebra">🦓<small>آنا</small></span><span className="croc">🐊<small>طاها</small></span><b>✦</b><label>هر کدوم یه ستاره،<br/>توی یه آسمون</label></div></section>{qrOpen&&<section className="qr"><img src={qr} alt="QR لینکِ سایت"/><div><b>هدیه‌ی مخفی برای آنا</b><p>کد رو اسکن کن، یا ذخیره و چاپش کن.</p><a href={qr} download="ana-qr.svg">دانلود QR</a></div></section>}<div className="metrics"><article><small>از روز شروعِ قصه</small><strong>{data.start?Math.max(0,Math.floor((today-new Date(data.start+'T00:00:00'))/864e5))+' روز':'؟'}</strong><button onClick={()=>T('settings')}>تنظیمِ تاریخ</button></article><article><small>قرارهای انجام‌شده</small><strong dir="ltr">{new Intl.NumberFormat('fa-IR').format(data.wishes.filter(x=>x.done).length)} / {new Intl.NumberFormat('fa-IR').format(data.wishes.length)}</strong><button onClick={()=>T('games')}>دیدنِ فهرست</button></article><article><small>مقصد پیشِ رو</small><strong>اصفهان</strong><button onClick={()=>T('atlas')}>دیدنِ اطلس</button></article></div><div className="grid"><article><small>حالتِ امروز · همین دستگاه</small><h2>الان دلت چه حالیه؟</h2>{['taha','ana'].map((x,i)=><label className="mood" key={x}>{i?'آنا':'طاها'} <div>{['🫶','🌙','🌱','✨','☁️'].map(m=><button className={data.mood[x]===m?'picked':''} onClick={()=>change('mood',v=>({...v,[x]:m}))} key={m}>{m}</button>)}</div></label>)}</article><article className="ticket"><small>بلیتِ قصه‌ی بعدی</small><h2>تهران ━━━ ✈ ━━━ اصفهان</h2><p>۲۲ مهر · طاها → دیدارِ آنا</p><button onClick={()=>T('timeline')}>جزئیاتِ سفر ←</button></article><article><small>یادآوریِ آرام</small><h2>یه جمله برای امروز</h2><blockquote>«لازم نیست هر روز عالی باشه؛ فقط بدون که تنهایی ازش رد نمی‌شی.»</blockquote><p>از طرفِ کروکدیلِ تو 🐊</p></article><article><small>دو شهر، یک قرار</small><h2>تهران و اصفهان</h2><p>ویجتِ هوا هنوز به داده‌ی زنده وصل نیست؛ آسمونِ شهر رو از پنجره ببین.</p></article></div></>}
-{tab==='timeline'&&<><Page title="خطِ زمانِ ما" text="لحظه‌هایی که خودتون می‌خواین نگه دارین."/><div className="columns"><form className="card" onSubmit={addEvent}><h2>یک ایستگاه تازه</h2><input placeholder="اسمِ خاطره" required value={title} onChange={e=>H(e.target.value)}/><textarea placeholder="چند کلمه براش" value={text} onChange={e=>Y(e.target.value)}/><button className="gold">اضافه‌کردن +</button></form><div className="timeline">{[...data.events].sort((a,b)=>a.date.localeCompare(b.date)).map(e=><article key={e.id}><small>{e.date} {e.future?'· قرارِ پیشِ رو':''}</small><h2>{e.title}</h2><p>{e.text}</p></article>)}</div></div></>}
-{tab==='atlas'&&<><Page title="اطلسِ قصه‌ی ما" text="یه نقشه‌ی نمادین، نه مسیریاب."/><div className="map">✦　ایران، با خطِ دستِ خودمون<div>{data.places.map(x=><button key={x} onClick={()=>H(x)}>📍 {x}</button>)}</div>{title&&<p>{title}</p>}<form onSubmit={e=>{e.preventDefault();change('places',xs=>[...xs,title]);H('')}}><input placeholder="اسمِ شهر یا رویا" value={title} onChange={e=>H(e.target.value)}/><button className="gold">افزودنِ نقطه +</button></form><small>نقشه‌ی تزئینی؛ بدون موقعیت‌یابی یا سرویسِ خارجی</small></div></>}
-{tab==='vault'&&<><Page title="صندوقِ خاطره" text="عکس‌ها و یادداشت‌ها فقط در همین مرورگر می‌مونن."/><div className="columns"><form className="card" onSubmit={addPhoto}><h2>یادداشتِ تازه</h2><input placeholder="عنوان" required value={title} onChange={e=>H(e.target.value)}/><input name="photo" type="file" accept="image/*"/><textarea placeholder="این عکس چی یادت میاره؟" value={text} onChange={e=>Y(e.target.value)}/><button className="gold">نگه‌داشتن +</button></form><div className="photos">{data.photos.map(p=><article key={p.id}>{p.photo&&<img src={p.photo} alt=""/>}<h3>{p.title}</h3><p>{p.text}</p><button onClick={()=>change('photos',xs=>xs.filter(x=>x.id!==p.id))}>حذف</button></article>)}</div></div></>}
-{tab==='letters'&&<><Page title="نامه‌های زمان‌دار" text="قفلِ تقویمیِ نمایشی؛ متن رمزنگاری نشده."/><div className="columns"><form className="card" onSubmit={addLetter}><h2>برای آینده بنویس</h2><input placeholder="عنوان" required value={title} onChange={e=>H(e.target.value)}/><input name="unlock" type="date" required/><textarea placeholder="پیامت" required value={text} onChange={e=>Y(e.target.value)}/><button className="gold">سپردن به زمان ✉</button></form><div className="photos">{data.letters.map(l=><article key={l.id}><small>{l.unlock<=new Date().toISOString().slice(0,10)?'💌 باز':'🔒 باز می‌شود: '+l.unlock}</small><h3>{l.title}</h3><p>{l.unlock<=new Date().toISOString().slice(0,10)?l.text:'این نامه تا روزش بسته می‌مونه.'}</p></article>)}</div></div><article className="card"><h2>اگه دلت تنگ شد چی؟</h2><p>یه نفسِ آروم، یه جرعه آب. لازم نیست همین الان همه‌چیز رو حل کنی؛ من دوستت دارم.</p></article></>}
-{tab==='games'&&<><Page title="بازی‌های دونفره" text="بهونه‌ای برای خندیدن، نه مسابقه."/><div className="grid"><article><small>گردونه‌ی قرار</small><h2>{spin||'قرارِ بعدی؟'}</h2><button className="gold" onClick={()=>{const ideas=['قدم‌زدنِ شبانه','فیلم و خوراکی','کافه‌ی تازه','یه بغلِ طولانی','چای و گپ'];F(ideas[Math.random()*ideas.length|0])}}>بچرخونش ✳</button></article><article><small>کوییزِ کوتاه · {quiz+1}/3</small><h2>{quiz<3?QUESTIONS[quiz][0]:`امتیاز: ${score}/3`}</h2>{quiz<3&&QUESTIONS[quiz][1].map((x,i)=><button className="answer" onClick={()=>{if(i===QUESTIONS[quiz][2])G(s=>s+1);Z(q=>q+1)}} key={x}>{x}</button>)}</article></div><article className="card"><h2>یه روز با هم…</h2>{data.wishes.map(w=><label className="wish" key={w.id}><input type="checkbox" checked={w.done} onChange={()=>change('wishes',xs=>xs.map(x=>x.id===w.id?{...x,done:!x.done}:x))}/>{w.text}<button onClick={()=>change('wishes',xs=>xs.filter(x=>x.id!==w.id))}>×</button></label>)}<form onSubmit={e=>{e.preventDefault();change('wishes',xs=>[...xs,{id:crypto.randomUUID(),text,title,done:false}]);H('')}}><input placeholder="آرزوی تازه" value={title} onChange={e=>H(e.target.value)}/><button className="gold">افزودن +</button></form></article></>}
-{tab==='settings'&&<><Page title="تنظیمات و حریم خصوصی" text="پیش‌نمایش محلی است؛ sql/setup.sql فقط طرح پیشنهادی دیتابیس را دارد."/><div className="grid"><article><small>از کجا شروع شد؟</small><h2>شمارنده‌ی روزها</h2><input type="date" value={data.start} onChange={e=>change('start',e.target.value)}/></article><article><small>محلِ ذخیره</small><h2>همین مرورگر</h2><p>داده‌ها و عکس‌ها فقط روی همین دستگاه ذخیره می‌شن.</p><button onClick={backup}>دانلودِ پشتیبان JSON</button></article></div></>}
-<footer>برای آنا، با عشق · ۲۲ مهر · ۲۱ سالگی</footer></main></div>}
-function Page({title,text}){return <header className="page-title"><small>یه گوشه‌ی امن، برای دوتاتون</small><h1>{title}</h1><p>{text}</p></header>
+import React, { useState, useEffect } from 'react';
+
+export default function App() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passError, setPassError] = useState(false);
+  const [activeTab, setActiveTab] = useState('universe');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // شمارنده عشق از ۸ آگوست ۲۰۲۶
+  const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const startDate = new Date('2026-08-08T00:00:00');
+    const timer = setInterval(() => {
+      const now = new Date();
+      const diff = Math.max(0, now - startDate);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / 1000 / 60) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setTimeTogether({ days, hours, minutes, seconds });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    // رمز عبور ورود (می‌توانی تغییر دهی: مثلا تاریخ یا 0808)
+    if (passcode.trim() === '0808' || passcode.trim().toLowerCase() === 'ana') {
+      setUnlocked(true);
+    } else {
+      setPassError(true);
+      setTimeout(() => setPassError(false), 2000);
+    }
+  };
+
+  const toggleMusic = () => {
+    const audio = document.getElementById('bg-music');
+    if (audio) {
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio.play().catch(() => {});
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  if (!unlocked) {
+    return (
+      <div style={gateStyles.container}>
+        <div style={gateStyles.card}>
+          <div style={gateStyles.heartPulse}>❤️</div>
+          <h1 style={{ color: '#fff', fontSize: '1.6rem', marginBottom: '8px' }}>دنیای اختصاصی طاها و آنا</h1>
+          <p style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '20px' }}>کلید ورود به کهکشان ما را وارد کن</p>
+          <form onSubmit={handleUnlock}>
+            <input
+              type="password"
+              placeholder="رمز عبور دلخواه (مثلاً 0808)"
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              style={{
+                ...gateStyles.input,
+                borderColor: passError ? '#ff4d4f' : 'rgba(255,255,255,0.2)'
+              }}
+            />
+            <button type="submit" style={gateStyles.button}>گشودن دروازه ✨</button>
+          </form>
+          {passError && <p style={{ color: '#ff4d4f', fontSize: '0.8rem', marginTop: '10px' }}>رمز اشتباه است عشق من!</p>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={appStyles.layout}>
+      {/* موزیک پلیر پس‌زمینه */}
+      <audio id="bg-music" loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=romantic-atmosphere-112195.mp3" />
+
+      {/* هدر بالایی و پلیر شناور */}
+      <header style={appStyles.header}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '1.4rem' }}>🌌</span>
+          <span style={{ fontWeight: 'bold', letterSpacing: '1px' }}>Taha & Ana's Universe</span>
+        </div>
+        <button onClick={toggleMusic} style={appStyles.musicBtn}>
+          {isPlaying ? '⏸ قطع موزیک عاشقانه' : '🎵 پخش موزیک عاشقانه'}
+        </button>
+      </header>
+
+      {/* نویگیشن تب‌ها */}
+      <nav style={appStyles.nav}>
+        {[
+          { id: 'universe', label: 'داشبورد ما' },
+          { id: 'timeline', label: 'مسیر عاشقی' },
+          { id: 'letters', label: 'کپسول نامه‌ها' },
+          { id: 'emergency', label: 'دلتنگ شدم ❤️' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              ...appStyles.tabBtn,
+              borderBottom: activeTab === tab.id ? '2px solid #e056fd' : 'none',
+              color: activeTab === tab.id ? '#fff' : '#888'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <main style={appStyles.main}>
+        {activeTab === 'universe' && (
+          <div style={appStyles.section}>
+            <h2 style={appStyles.sectionTitle}>چقدر از آغاز یکی‌شدنمان می‌گذرد؟</h2>
+            <div style={appStyles.counterGrid}>
+              <div style={appStyles.counterCard}><span>{timeTogether.days}</span><label>روز</label></div>
+              <div style={appStyles.counterCard}><span>{timeTogether.hours}</span><label>ساعت</label></div>
+              <div style={appStyles.counterCard}><span>{timeTogether.minutes}</span><label>دقیقه</label></div>
+              <div style={appStyles.counterCard}><span>{timeTogether.seconds}</span><label>ثانیه</label></div>
+            </div>
+            <p style={{ textAlign: 'center', color: '#ff7979', marginTop: '20px', fontStyle: 'italic' }}>
+              «از ۸ آگوست، هر ثانیه با تو جهان من روشن‌تر شد...»
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'timeline' && (
+          <div style={appStyles.section}>
+            <h2 style={appStyles.sectionTitle}>ایستگاه‌های سرنوشت</h2>
+            <div style={appStyles.timeline}>
+              <div style={appStyles.timelineItem}>
+                <span style={appStyles.timelineBadge}>۸ آگوست ۲۰۲۶</span>
+                <h3>نقطه عطف جهان: شروع ما</h3>
+                <p>روزی که قلب‌هایمان به هم پیوند خورد و این قصه عاشقانه آغاز شد.</p>
+              </div>
+              <div style={appStyles.timelineItem}>
+                <span style={appStyles.timelineBadge}>قرار اصفهان</span>
+                <h3>دیدار چشم‌هایت در پایتخت هنر</h3>
+                <p>قدم زدن زیر سایه پل‌ها و ثبت ماندگارترین خاطره عمرمان.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'letters' && (
+          <div style={appStyles.section}>
+            <h2 style={appStyles.sectionTitle}>کپسول نامه‌های قفل‌شده</h2>
+            <div style={appStyles.letterCard}>
+              <h3>نامه اول: برای لحظه‌ای که این سایت را باز می‌کنی 💌</h3>
+              <p>
+                آنای عزیزم، اگر داری این متن را می‌خوانی یعنی این وب‌سایت کوچک توانسته پلی باشد بین قلب من و تو. تک‌تک خط‌های این کد را برای نشاندن لبخند روی لب‌های تو نوشتم...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'emergency' && (
+          <div style={{ ...appStyles.section, textAlign: 'center' }}>
+            <h2 style={{ color: '#ff4d4f' }}>کیت اضطراری دلتنگی ❤️</h2>
+            <p style={{ color: '#ccc', lineHeight: '1.8' }}>
+              هر زمان حس کردی فاصله‌ها زیاد شده یا دلت گرفت، چشم‌هایت را ببند و یادت باشد:
+              هیچ مسافتی زورش به عشقی که برایت در قلبم ساخته‌ام نمی‌رسد. من همیشه و همه‌جا کنارت هستم.
+            </p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+const gateStyles = {
+  container: {
+    height: '100vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: 'radial-gradient(circle at center, #1a0826 0%, #05010a 100%)',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    direction: 'rtl'
+  },
+  card: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    backdropFilter: 'blur(16px)',
+    padding: '40px',
+    borderRadius: '24px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    textAlign: 'center',
+    maxWidth: '360px',
+    width: '90%'
+  },
+  heartPulse: { fontSize: '3rem', marginBottom: '15px' },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    background: 'rgba(0,0,0,0.3)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    borderRadius: '12px',
+    color: '#fff',
+    outline: 'none',
+    boxSizing: 'border-box',
+    textAlign: 'center'
+  },
+  button: {
+    width: '100%',
+    marginTop: '15px',
+    padding: '12px',
+    background: 'linear-gradient(135deg, #e056fd 0%, #686de0 100%)',
+    border: 'none',
+    borderRadius: '12px',
+    color: '#fff',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }
+};
+
+const appStyles = {
+  layout: {
+    minHeight: '100vh',
+    background: '#0a0512',
+    color: '#fff',
+    direction: 'rtl',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '15px 25px',
+    background: 'rgba(255,255,255,0.03)',
+    borderBottom: '1px solid rgba(255,255,255,0.08)'
+  },
+  musicBtn: {
+    background: 'rgba(224, 86, 253, 0.15)',
+    border: '1px solid #e056fd',
+    color: '#e056fd',
+    padding: '6px 14px',
+    borderRadius: '20px',
+    cursor: 'pointer'
+  },
+  nav: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '20px',
+    padding: '15px 10px',
+    borderBottom: '1px solid rgba(255,255,255,0.05)'
+  },
+  tabBtn: {
+    background: 'transparent',
+    border: 'none',
+    fontSize: '0.95rem',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    transition: 'all 0.3s'
+  },
+  main: { maxWidth: '700px', margin: '30px auto', padding: '0 20px' },
+  section: {
+    background: 'rgba(255,255,255,0.03)',
+    padding: '25px',
+    borderRadius: '20px',
+    border: '1px solid rgba(255,255,255,0.06)'
+  },
+  sectionTitle: { textAlign: 'center', marginBottom: '20px', fontSize: '1.2rem', color: '#e056fd' },
+  counterGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' },
+  counterCard: {
+    background: 'rgba(0,0,0,0.4)',
+    padding: '15px 5px',
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '5px'
+  },
+  timeline: { borderRight: '2px solid #e056fd', paddingRight: '20px', display: 'flex', flexDirection: 'column', gap: '20px' },
+  timelineItem: { position: 'relative' },
+  timelineBadge: { fontSize: '0.75rem', background: '#e056fd', padding: '2px 8px', borderRadius: '10px' },
+  letterCard: { background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '12px', lineHeight: '1.8', color: '#ddd' }
+};
