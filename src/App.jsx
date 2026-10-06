@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
@@ -10,32 +10,43 @@ export default function App() {
   const [passcode, setPasscode] = useState('');
   const [passError, setPassError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
+  
+  // سیستم صوت و آهنگ مطمئن
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('pink'); // pink, zebra, croc, chick
+  const audioRef = useRef(null);
 
-  // داده‌های دیتابیس آنلاین
+  // تم‌ها: pink, zebra (سیاه و سفید راه راه), croc (سبز نعنایی), chick (زرد جوجویی)
+  const [currentTheme, setCurrentTheme] = useState('pink');
+
+  // استیت‌های دیتابیس Supabase
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
-  const [author, setAuthor] = useState('طاها');
+  const [author, setAuthor] = useState('طاها 🦓');
   const [photos, setPhotos] = useState([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [photoCaption, setPhotoCaption] = useState('');
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
 
-  // استیت‌های انیمیشن و فان
-  const [floatingItems, setFloatingItems] = useState([]);
-  const [gameScore, setGameScore] = useState(0);
-  const [spinResult, setSpinResult] = useState(null);
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [sparkleQuote, setSparkleQuote] = useState('روی جوجو کلیک کن تا یه جمله شاد بشنوی! 🐥✨');
+  // استیت‌های انیمیشن و ذرات معلق
+  const [particles, setParticles] = useState([]);
+  const [sparkleQuote, setSparkleQuote] = useState('روی یکی از حیوونا بزن تا برات برقصن! ✨');
 
-  // شمارنده عشق از ۸ آگوست ۲۰۲۶
+  // زمان‌شمار با کنتراست فوق‌العاده بالا
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+  // استیت مینی‌گیم گورخر و جوجو (Runner)
+  const [gameActive, setGameActive] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [zebraY, setZebraY] = useState(0); // 0 زمین, 1 پرش
+  const [chickX, setChickX] = useState(100); // درصد حرکت جوجو از راست به چپ
+  const [isGameOver, setIsGameOver] = useState(false);
+
+  // محاسبه ثانیه‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
   useEffect(() => {
     const startDate = new Date('2026-08-08T00:00:00');
-    const timer = setInterval(() => {
+    const updateCounter = () => {
       const now = new Date();
       const diff = Math.max(0, now - startDate);
       setTimeTogether({
@@ -44,11 +55,13 @@ export default function App() {
         minutes: Math.floor((diff / 1000 / 60) % 60),
         seconds: Math.floor((diff / 1000) % 60)
       });
-    }, 1000);
+    };
+    updateCounter();
+    const timer = setInterval(updateCounter, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // واکشی داده‌ها از Supabase
+  // دریافت داده‌ها از دیتابیس آنلاین
   useEffect(() => {
     if (unlocked) {
       fetchNotes();
@@ -69,7 +82,7 @@ export default function App() {
     if (data) {
       setNotes([data[0], ...notes]);
       setNewNote('');
-      spawnFloating('💌');
+      spawnParticles('💌');
     }
   };
 
@@ -86,7 +99,7 @@ export default function App() {
       setPhotos([data[0], ...photos]);
       setNewPhotoUrl('');
       setPhotoCaption('');
-      spawnFloating('📸');
+      spawnParticles('📸');
     }
   };
 
@@ -102,138 +115,169 @@ export default function App() {
     if (data) {
       setBucketList([...bucketList, data[0]]);
       setNewWish('');
-      spawnFloating('🌟');
+      spawnParticles('🌟');
     }
   };
 
   const toggleBucket = async (id, currentStatus) => {
     await supabase.from('bucket_list').update({ completed: !currentStatus }).eq('id', id);
     setBucketList(bucketList.map(item => item.id === id ? { ...item, completed: !currentStatus } : item));
-    spawnFloating('🎉');
+    spawnParticles('🎉');
   };
 
-  // بارش آیکون‌های تعاملی
-  const spawnFloating = (emoji) => {
-    const id = Date.now();
-    const newItems = Array.from({ length: 14 }).map((_, i) => ({
-      id: id + i,
-      emoji: emoji || '💖',
-      left: Math.random() * 90 + 5,
-      duration: Math.random() * 1.5 + 1.2,
-      size: Math.random() * 1.2 + 1.3
-    }));
-    setFloatingItems(prev => [...prev, ...newItems]);
-    setTimeout(() => {
-      setFloatingItems(prev => prev.filter(item => !newItems.some(ni => ni.id === item.id)));
-    }, 2500);
-  };
-
-  const quotes = [
-    "آنا قشنگم، لبخندت حتی کروکودیل‌ها رو هم عاشق و مهربون می‌کنه! 🐊💖",
-    "گورخر صورتی قصه‌مون میگه راه‌راه‌های زندگیم فقط با خنده‌هات قشنگه 🦓🌸",
-    "جوجو طلایی میگه: تو قشنگ‌ترین پروانه تو کل اصفهان و جهانی! 🐥✨",
-    "هر ثانیه که باهمیم یه رنگین‌کمون از خاطرات شیرینه 🍓🍭",
-    "یادت نره امروز یه دوش آب گرم بگیری و بدونی چقدر عزیزی 🤍🎀"
-  ];
-
-  const adventures = [
-    "قدم زدن دوتایی روی سی‌وسه‌پل و عکس سلفی با فیلتر کروکودیل! 🌉🐊",
-    "خوردن شیرینی دانمارکی و وافل نوتلایی با آبمیوه توت‌فرنگی 🍓🧇",
-    "کشف کردن یه کافه با دکور چوبی و دنج تو جلفا ☕🌿",
-    "مسابقه ساختن خنده‌دارترین میم‌های گورخری با همدیگه 🦓😂",
-    "شب‌نشینی و دیدن انیمیشن درحالی که پتوی پشمی رومونه 🎬🍿"
-  ];
-
-  const spinAdventures = () => {
-    if (isSpinning) return;
-    setIsSpinning(true);
-    let count = 0;
-    const interval = setInterval(() => {
-      setSpinResult(adventures[Math.floor(Math.random() * adventures.length)]);
-      count++;
-      if (count > 15) {
-        clearInterval(interval);
-        setIsSpinning(false);
-      }
-    }, 70);
-  };
-
-  const handleUnlock = (e) => {
-    e.preventDefault();
-    if (['0808', 'ana', 'taha', '1405'].includes(passcode.trim().toLowerCase())) {
-      setUnlocked(true);
-      spawnFloating('🌸');
+  // کنترل موزیک
+  const togglePlayMusic = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      setPassError(true);
-      setTimeout(() => setPassError(false), 2000);
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(err => console.log('Audio error:', err));
     }
   };
 
-  const toggleMusic = () => {
-    const audio = document.getElementById('bg-music');
-    if (audio) {
-      if (isPlaying) audio.pause();
-      else audio.play().catch(() => {});
-      setIsPlaying(!isPlaying);
+  // باران ذرات و ایموجی‌ها
+  const spawnParticles = (emoji = '💖') => {
+    const id = Date.now();
+    const batch = Array.from({ length: 14 }).map((_, i) => ({
+      id: id + i,
+      emoji,
+      left: Math.random() * 88 + 6,
+      size: Math.random() * 1.5 + 1.2,
+      duration: Math.random() * 1.2 + 1.5
+    }));
+    setParticles(prev => [...prev, ...batch]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !batch.some(b => b.id === p.id)));
+    }, 2800);
+  };
+
+  // سیستم مینی‌گیم تعاملی گورخر دونده
+  useEffect(() => {
+    let loop;
+    if (gameActive && !isGameOver) {
+      loop = setInterval(() => {
+        setChickX(prev => {
+          if (prev <= 12 && prev >= 0 && zebraY === 0) {
+            // برخورد رخ داد
+            setIsGameOver(true);
+            return 100;
+          }
+          if (prev <= 0) {
+            setScore(s => {
+              const newScore = s + 10;
+              if (newScore > highScore) setHighScore(newScore);
+              return newScore;
+            });
+            return 100;
+          }
+          return prev - 4;
+        });
+      }, 50);
+    }
+    return () => clearInterval(loop);
+  }, [gameActive, isGameOver, zebraY, highScore]);
+
+  const jumpZebra = () => {
+    if (zebraY === 0 && gameActive && !isGameOver) {
+      setZebraY(1);
+      spawnParticles('⚡');
+      setTimeout(() => setZebraY(0), 450);
     }
   };
 
-  // تم‌های پویا
-  const themeStyles = {
+  const restartGame = () => {
+    setScore(0);
+    setIsGameOver(false);
+    setChickX(100);
+    setZebraY(0);
+    setGameActive(true);
+  };
+
+  // پالت تم‌ها
+  const themes = {
     pink: {
-      bg: 'linear-gradient(180deg, #fff0f5 0%, #ffe0ea 100%)',
-      primary: '#ff2a70',
-      accent: '#ff758c',
-      cardBg: 'rgba(255, 255, 255, 0.94)',
-      border: '#ffccd5',
-      badge: '🌸 دنیای صورتی نانازی'
+      id: 'pink',
+      bg: 'linear-gradient(135deg, #fff0f5 0%, #ffccd5 100%)',
+      cardBg: 'rgba(255, 255, 255, 0.95)',
+      primary: '#ff1493',
+      accent: '#ff69b4',
+      text: '#c2185b',
+      border: '#ffb6c1',
+      pattern: 'none'
     },
     zebra: {
-      bg: 'radial-gradient(circle, #fff 20%, #ffeef5 40%, #ffc2d1 100%)',
-      primary: '#d81b60',
-      accent: '#4a154b',
-      cardBg: 'rgba(255, 255, 255, 0.96)',
-      border: '#f06292',
-      badge: '🦓 گورخر صورتی فانتزی'
+      id: 'zebra',
+      bg: 'repeating-linear-gradient(45deg, #111, #111 25px, #fff 25px, #fff 50px)',
+      cardBg: 'rgba(20, 20, 20, 0.94)',
+      primary: '#ff007f',
+      accent: '#00f0ff',
+      text: '#ffffff',
+      border: '#ff007f',
+      counterBox: '#222',
+      pattern: 'zebra'
     },
     croc: {
-      bg: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)',
-      primary: '#2e7d32',
-      accent: '#66bb6a',
+      id: 'croc',
+      bg: 'linear-gradient(135deg, #e8f5e9 0%, #a5d6a7 100%)',
       cardBg: 'rgba(255, 255, 255, 0.95)',
-      border: '#a5d6a7',
-      badge: '🐊 مرداب کروکودیل عاشق'
+      primary: '#1b5e20',
+      accent: '#4caf50',
+      text: '#1b5e20',
+      border: '#81c784',
+      pattern: 'none'
     },
     chick: {
-      bg: 'linear-gradient(180deg, #fffde7 0%, #fff9c4 100%)',
-      primary: '#f57f17',
-      accent: '#fbc02d',
+      id: 'chick',
+      bg: 'linear-gradient(135deg, #fffde7 0%, #ffe082 100%)',
       cardBg: 'rgba(255, 255, 255, 0.95)',
-      border: '#ffe082',
-      badge: '🐥 مزرعه جوجو کوچولو'
+      primary: '#e65100',
+      accent: '#fbc02d',
+      text: '#e65100',
+      border: '#ffd54f',
+      pattern: 'none'
     }
-  }[currentTheme];
+  };
+
+  const t = themes[currentTheme];
+
+  const quotes = [
+    "آنا، گورخر راه‌راه قصه‌مون میگه زندگی بدون تو سیاه و سفیده، با تو رنگین‌کمونه! 🦓🌈",
+    "کروکودیل عاشق تمام مرواریدهای اصفهان رو تقدیم خنده‌هات می‌کنه! 🐊💖",
+    "جوجو طلایی با سرعت نور بال می‌زنه تا به آغوش پرنسس برسه! 🐥✨",
+    "ضربان قلب طاها از ۸ آگوست ۲۰۲۶ روی فرکانس چشمات تنظیم شده 🍓",
+    "تو زیباترین و خارق‌العاده‌ترین اتفاق کل کهکشانی پروانه‌ام 🌸"
+  ];
 
   if (!unlocked) {
     return (
-      <div style={ui.gateContainer}>
-        <div style={ui.gateCard}>
-          <div style={{ fontSize: '3.8rem', animation: 'bounce 1.5s infinite' }}>🦓🐊🐥💖</div>
-          <h1 style={{ color: '#ff2a70', fontSize: '1.9rem', fontWeight: 900, margin: '14px 0 6px' }}>
-            سرزمین اختصاصی طاها و آنا
+      <div style={styles.gateWrapper}>
+        <div style={styles.gateCard}>
+          <div style={{ fontSize: '4rem', animation: 'bounce 1.5s infinite' }}>🦓🐊🐥💖</div>
+          <h1 style={{ color: '#ff1493', fontSize: '1.9rem', fontWeight: 900, margin: '14px 0 6px' }}>
+            قلمرو کهکشانی طاها و آنا
           </h1>
-          <p style={{ color: '#ff7597', fontSize: '0.95rem', marginBottom: '22px' }}>
-            کلید کهکشان حیوانات نانازی و رمانتیک رو بزن پرنسس ✨
+          <p style={{ color: '#ff69b4', fontSize: '0.95rem', marginBottom: '22px' }}>
+            رمز اختصاصی دروازه رو بزن پرنسس قشنگم ✨
           </p>
-          <form onSubmit={handleUnlock}>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (['0808', 'ana', 'taha', '1405'].includes(passcode.trim().toLowerCase())) {
+              setUnlocked(true);
+              spawnParticles('💖');
+            } else {
+              setPassError(true);
+              setTimeout(() => setPassError(false), 2000);
+            }
+          }}>
             <input
               type="password"
               placeholder="رمز عبور (مثلاً 0808)"
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
-              style={ui.gateInput}
+              style={styles.gateInput}
             />
-            <button type="submit" style={ui.gateBtn}>ورود به سرزمین شگفتی‌ها 🗝️🎀</button>
+            <button type="submit" style={styles.gateBtn}>ورود به سرزمین شگفتی‌ها 🗝️🎀</button>
           </form>
           {passError && <p style={{ color: '#ff0055', marginTop: '12px', fontWeight: 'bold' }}>رمز اشتباهه خوشگلم! دوباره بزن 🥺</p>}
         </div>
@@ -242,167 +286,290 @@ export default function App() {
   }
 
   return (
-    <div style={{ ...ui.wrapper, background: themeStyles.bg }}>
+    <div style={{ ...styles.appContainer, background: t.bg }}>
+      {/* فایل صوتی بدون قطعی (رمانتیک پیانو والس فرانسه) */}
       <audio
-        id="bg-music"
+        ref={audioRef}
         loop
-        src="https://cdn.pixabay.com/download/audio/2022/11/06/audio_c35f2991cf.mp3?filename=waltz-of-the-flowers-romantic-piano-126231.mp3"
+        preload="auto"
+        src="https://actions.google.com/sounds/v1/ambiences/outdoor_market.ogg"
+        onError={() => {
+          if (audioRef.current) {
+            audioRef.current.src = "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c35f2991cf.mp3?filename=waltz-of-the-flowers-romantic-piano-126231.mp3";
+          }
+        }}
       />
 
-      {/* باران انیمیشنی معلق */}
-      {floatingItems.map(item => (
+      {/* ذرات شناور بارانی */}
+      {particles.map(p => (
         <span
-          key={item.id}
+          key={p.id}
           style={{
             position: 'fixed',
-            left: `${item.left}%`,
+            left: `${p.left}%`,
             bottom: '0px',
-            fontSize: `${item.size}rem`,
-            animation: `floatUp ${item.duration}s linear forwards`,
+            fontSize: `${p.size}rem`,
+            animation: `floatUp ${p.duration}s linear forwards`,
             zIndex: 9999,
             pointerEvents: 'none'
           }}
         >
-          {item.emoji}
+          {p.emoji}
         </span>
       ))}
 
-      {/* هدر بالایی و سلکتور تم‌های جذاب */}
-      <header style={{ ...ui.navbar, borderColor: themeStyles.border }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '1.8rem', animation: 'wiggle 2s infinite' }}>🦓💖🐊🐥</span>
-          <span style={{ fontWeight: 900, color: themeStyles.primary, fontSize: '1.2rem' }}>Taha & Ana Land</span>
+      {/* پلیر شناور در گوشه صفحه */}
+      <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary }}>
+        <button onClick={togglePlayMusic} style={{ ...styles.playCircle, background: t.primary }}>
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: t.id === 'zebra' ? '#fff' : t.primary }}>
+          {isPlaying ? 'در حال پخش والس عاشقی 🎶' : 'رو من بزن آهنگ پخش شه 🎵'}
+        </span>
+      </div>
+
+      {/* هدر بالایی */}
+      <header style={{ ...styles.navbar, borderColor: t.border, background: t.id === 'zebra' ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '2rem', animation: 'wiggle 2s infinite' }}>🦓🐊🐥</span>
+          <span style={{ fontWeight: 900, color: t.primary, fontSize: '1.25rem' }}>
+            دنیای اختصاصی طاها و آنا
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button onClick={() => spawnFloating('🦓')} style={ui.miniActionBtn}>🦓 گورخر</button>
-          <button onClick={() => spawnFloating('🐊')} style={ui.miniActionBtn}>🐊 کروکودیل</button>
-          <button onClick={() => spawnFloating('🐥')} style={ui.miniActionBtn}>🐥 جوجو</button>
-          <button onClick={toggleMusic} style={{ ...ui.musicBtn, borderColor: themeStyles.accent, color: themeStyles.primary }}>
-            {isPlaying ? '⏸ قطع پیانو' : '🎶 والس فرانسوی'}
-          </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => spawnParticles('🦓')} style={styles.badgeBtn}>🦓 باران راه‌راه</button>
+          <button onClick={() => spawnParticles('🐊')} style={styles.badgeBtn}>🐊 باران کروکودیل</button>
+          <button onClick={() => spawnParticles('🐥')} style={styles.badgeBtn}>🐥 باران جوجو</button>
         </div>
       </header>
 
-      {/* نوار انتخاب تم جادویی */}
-      <div style={ui.themeSelectorBar}>
-        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: themeStyles.primary }}>تغییر حال و هوای تم:</span>
-        <button onClick={() => setCurrentTheme('pink')} style={{ ...ui.themeBtn, background: '#ffccd5' }}>🌸 صورتی</button>
-        <button onClick={() => setCurrentTheme('zebra')} style={{ ...ui.themeBtn, background: '#f8bbd0' }}>🦓 گورخر</button>
-        <button onClick={() => setCurrentTheme('croc')} style={{ ...ui.themeBtn, background: '#c8e6c9' }}>🐊 کروکودیل</button>
-        <button onClick={() => setCurrentTheme('chick')} style={{ ...ui.themeBtn, background: '#fff9c4' }}>🐥 جوجو</button>
+      {/* نوار انتخاب تم‌های زنده */}
+      <div style={styles.themeSelectorBar}>
+        <span style={{ fontWeight: 800, color: t.id === 'zebra' ? '#fff' : '#444', fontSize: '0.9rem' }}>تغییر حال و هوای تم:</span>
+        <button onClick={() => setCurrentTheme('pink')} style={{ ...styles.themeBtn, background: '#ffccd5', border: currentTheme === 'pink' ? '3px solid #ff1493' : 'none' }}>🌸 صورتی توت‌فرنگی</button>
+        <button onClick={() => setCurrentTheme('zebra')} style={{ ...styles.themeBtn, background: '#111', color: '#fff', border: currentTheme === 'zebra' ? '3px solid #00f0ff' : '1px solid #fff' }}>🦓 گورخر راه‌راه بلک</button>
+        <button onClick={() => setCurrentTheme('croc')} style={{ ...styles.themeBtn, background: '#c8e6c9', border: currentTheme === 'croc' ? '3px solid #1b5e20' : 'none' }}>🐊 مرداب کروکودیل</button>
+        <button onClick={() => setCurrentTheme('chick')} style={{ ...styles.themeBtn, background: '#fff9c4', border: currentTheme === 'chick' ? '3px solid #e65100' : 'none' }}>🐥 مزرعه جوجو</button>
       </div>
 
-      {/* منوی تب‌های کاربری */}
-      <nav style={ui.tabContainer}>
+      {/* تب‌های جابه‌جایی صفحات */}
+      <nav style={styles.navTabs}>
         {[
-          { id: 'hub', label: 'شمارنده عشق و حیوانات ⏳' },
-          { id: 'gallery', label: 'گالری پولاروید سه‌بعدی 📸' },
-          { id: 'notes', label: 'یادداشت‌های مخفی زنده 💬' },
-          { id: 'bucket', label: 'دفترچه آرزوهای دوتایی 🌟' },
-          { id: 'fun', label: 'گردونه قرارها و مینی‌گیم 🎡' }
-        ].map(t => (
+          { id: 'hub', label: 'شمارنده و حیوانات ⏳' },
+          { id: 'game', label: 'مینی‌گیم گورخر و جوجو 🎮' },
+          { id: 'gallery', label: 'آلبوم پولاروید سه‌بعدی 📸' },
+          { id: 'notes', label: 'صندوقچه یادداشت‌های زنده 💌' },
+          { id: 'bucket', label: 'دفترچه آرزوها و سفرها 🌟' }
+        ].map(item => (
           <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
             style={{
-              ...ui.tabItem,
-              background: activeTab === t.id ? `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` : '#fff',
-              color: activeTab === t.id ? '#fff' : themeStyles.primary,
-              border: `2px solid ${themeStyles.border}`
+              ...styles.tabButton,
+              background: activeTab === item.id ? `linear-gradient(135deg, ${t.primary}, ${t.accent})` : (t.id === 'zebra' ? '#222' : '#fff'),
+              color: activeTab === item.id ? '#fff' : (t.id === 'zebra' ? '#00f0ff' : t.primary),
+              border: `2px solid ${t.border}`,
+              transform: activeTab === item.id ? 'scale(1.05)' : 'scale(1)'
             }}
           >
-            {t.label}
+            {item.label}
           </button>
         ))}
       </nav>
 
-      {/* بدنه و صفحات */}
-      <main style={ui.main}>
-        {/* ۱. تب اصلی، شمارنده و مینی آواتارهای دونفره */}
+      {/* محتوای صفحات */}
+      <main style={styles.mainContent}>
+        {/* ۱. تب هاب: ثانیه‌شمار با ارقام واضح و کنتراست فوق‌العاده بالا */}
         {activeTab === 'hub' && (
-          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
-            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>ثانیه‌شمار دنیای مشترک طاها و آنا 💕</h2>
-            <div style={ui.counterGrid}>
-              <div style={ui.counterBox}><span>{timeTogether.days}</span><label>روز عاشقی</label></div>
-              <div style={ui.counterBox}><span>{timeTogether.hours}</span><label>ساعت</label></div>
-              <div style={ui.counterBox}><span>{timeTogether.minutes}</span><label>دقیقه</label></div>
-              <div style={ui.counterBox}><span>{timeTogether.seconds}</span><label>ثانیه</label></div>
+          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>
+              ثانیه‌شمار دنیای بی‌پایان ما 💕
+            </h2>
+            
+            {/* شمارنده بازطراحی‌شده با اعداد کاملاً خوانا */}
+            <div style={styles.counterGrid}>
+              <div style={{ ...styles.counterBox, background: t.id === 'zebra' ? '#000' : '#fff', borderColor: t.primary }}>
+                <span style={{ ...styles.counterNum, color: t.id === 'zebra' ? '#00f0ff' : '#d81b60' }}>
+                  {timeTogether.days}
+                </span>
+                <label style={{ ...styles.counterLabel, color: t.id === 'zebra' ? '#fff' : '#666' }}>روز عاشقی</label>
+              </div>
+
+              <div style={{ ...styles.counterBox, background: t.id === 'zebra' ? '#000' : '#fff', borderColor: t.primary }}>
+                <span style={{ ...styles.counterNum, color: t.id === 'zebra' ? '#00f0ff' : '#d81b60' }}>
+                  {timeTogether.hours}
+                </span>
+                <label style={{ ...styles.counterLabel, color: t.id === 'zebra' ? '#fff' : '#666' }}>ساعت</label>
+              </div>
+
+              <div style={{ ...styles.counterBox, background: t.id === 'zebra' ? '#000' : '#fff', borderColor: t.primary }}>
+                <span style={{ ...styles.counterNum, color: t.id === 'zebra' ? '#00f0ff' : '#d81b60' }}>
+                  {timeTogether.minutes}
+                </span>
+                <label style={{ ...styles.counterLabel, color: t.id === 'zebra' ? '#fff' : '#666' }}>دقیقه</label>
+              </div>
+
+              <div style={{ ...styles.counterBox, background: t.id === 'zebra' ? '#000' : '#fff', borderColor: t.primary }}>
+                <span style={{ ...styles.counterNum, color: t.id === 'zebra' ? '#ff007f' : '#ff1493' }}>
+                  {timeTogether.seconds}
+                </span>
+                <label style={{ ...styles.counterLabel, color: t.id === 'zebra' ? '#fff' : '#666' }}>ثانیه</label>
+              </div>
             </div>
 
-            <div style={{ textAlign: 'center', margin: '25px 0 10px' }}>
-              <div style={{ fontSize: '3.2rem', display: 'flex', justifyContent: 'center', gap: '20px' }}>
-                <span className="mascot-hover" onClick={() => spawnFloating('🐊')}>🐊</span>
-                <span className="mascot-hover" onClick={() => spawnFloating('💖')}>💖</span>
-                <span className="mascot-hover" onClick={() => spawnFloating('🐥')}>🐥</span>
-                <span className="mascot-hover" onClick={() => spawnFloating('🦓')}>🦓</span>
+            {/* بخش کلیکی حیوانات */}
+            <div style={{ textAlign: 'center', margin: '30px 0 10px' }}>
+              <div style={{ fontSize: '3.6rem', display: 'flex', justifyContent: 'center', gap: '25px' }}>
+                <span className="interactive-animal" onClick={() => spawnParticles('🦓')}>🦓</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('💖')}>💖</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('🐥')}>🐥</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('🐊')}>🐊</span>
               </div>
-              <p style={{ color: themeStyles.primary, fontWeight: 800, marginTop: '8px' }}>
-                روی هر کدوم از حیوونا بزنی، یه بارون خوشگل از آسمون می‌باره! 🌈
+              <p style={{ color: t.id === 'zebra' ? '#00f0ff' : t.primary, fontWeight: 800, marginTop: '10px' }}>
+                روی هر حیوون کلیک کن تا روحش تو صفحه پرواز کنه! 🌟
               </p>
             </div>
 
-            <div style={{ background: '#fff', padding: '18px', borderRadius: '20px', border: `2px dashed ${themeStyles.border}`, textAlign: 'center', marginTop: '16px' }}>
-              <p style={{ fontSize: '1.05rem', color: themeStyles.primary, fontWeight: 700 }}>{sparkleQuote}</p>
+            {/* باکس پیام محبت‌آمیز */}
+            <div style={{ background: t.id === 'zebra' ? '#111' : '#fff', padding: '20px', borderRadius: '22px', border: `2px dashed ${t.primary}`, textAlign: 'center' }}>
+              <p style={{ fontSize: '1.1rem', color: t.id === 'zebra' ? '#fff' : t.primary, fontWeight: 800, lineHeight: 1.8 }}>
+                {sparkleQuote}
+              </p>
               <button
                 onClick={() => setSparkleQuote(quotes[Math.floor(Math.random() * quotes.length)])}
-                style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})`, marginTop: '10px' }}
+                style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, marginTop: '12px' }}
               >
-                جمله‌ قشنگ بعدی برای آنا 🍬
+                یه جمله شیرین دیگه برای پرنسس آنا 🍬
               </button>
             </div>
           </div>
         )}
 
-        {/* ۲. گالری عکس‌های تعاملی شبیه عکس‌های پولاروید چاپ شده با چرخش و سایه */}
-        {activeTab === 'gallery' && (
-          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
-            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>آلبوم پولاروید خاطرات ما 📸🎀</h2>
-            <p style={{ textAlign: 'center', color: '#777', fontSize: '0.9rem', marginBottom: '16px' }}>
-              لینک مستقیم عکس‌های قشنگمون رو بذار تا به شکل عکس‌های پولاروید نوستالژیک اضافه بشن:
-            </p>
+        {/* ۲. تب مینی‌گیم فوق‌العاده جذاب گورخر دونده (Zebra Runner) */}
+        {activeTab === 'game' && (
+          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>
+              مینی‌گیم تعاملی: پرش گورخر از روی جوجوها! 🎮🦓
+            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginBottom: '10px', color: t.id === 'zebra' ? '#fff' : '#333' }}>
+              <span style={{ fontWeight: 800 }}>امتیاز فعلی: {score}</span>
+              <span style={{ fontWeight: 800, color: t.primary }}>بالاترین رکورد: {highScore}</span>
+            </div>
 
+            {/* صحنه بازی با انیمیشن */}
+            <div style={{
+              position: 'relative',
+              height: '180px',
+              background: t.id === 'zebra' ? '#000' : 'linear-gradient(180deg, #e0f7fa 0%, #fff 100%)',
+              border: `3px solid ${t.primary}`,
+              borderRadius: '20px',
+              overflow: 'hidden'
+            }}>
+              {/* زمین مسابقه */}
+              <div style={{ position: 'absolute', bottom: 0, width: '100%', height: '25px', background: t.id === 'zebra' ? '#333' : '#a5d6a7' }} />
+
+              {/* گورخر */}
+              <div style={{
+                position: 'absolute',
+                left: '20px',
+                bottom: zebraY === 1 ? '75px' : '20px',
+                fontSize: '3rem',
+                transition: 'bottom 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              }}>
+                🦓
+              </div>
+
+              {/* جوجو که از روبه‌رو می‌آید */}
+              <div style={{
+                position: 'absolute',
+                left: `${chickX}%`,
+                bottom: '22px',
+                fontSize: '2rem'
+              }}>
+                🐥
+              </div>
+
+              {isGameOver && (
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.75)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff'
+                }}>
+                  <h3 style={{ fontSize: '1.4rem', color: '#ff1493', marginBottom: '8px' }}>باختی نازنینم! 🥺</h3>
+                  <p style={{ marginBottom: '12px' }}>گورخر به جوجو رسید و بغلش کرد!</p>
+                  <button onClick={restartGame} style={{ ...styles.actionBtn, width: 'auto', padding: '10px 24px', background: t.primary }}>
+                    شروع دوباره مسابقه 🔄
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              {!gameActive ? (
+                <button onClick={restartGame} style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
+                  شروع بازی پرش گورخر 🚀
+                </button>
+              ) : (
+                <button onClick={jumpZebra} style={{ ...styles.actionBtn, fontSize: '1.2rem', padding: '16px', background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
+                  بپر! (Space / کلیک) 🦘
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ۳. گالری پولاروید سه‌بعدی متحرک */}
+        {activeTab === 'gallery' && (
+          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>آلبوم پولاروید نوستالژیک ما 📸🎀</h2>
             <form onSubmit={addPhoto} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
               <input
                 type="text"
-                placeholder="لینک مستقیم تصویر (مثلاً از سایت‌های آپلود مثل imgur یا postimages)"
+                placeholder="لینک مستقیم عکس دونفره‌مون..."
                 value={newPhotoUrl}
                 onChange={e => setNewPhotoUrl(e.target.value)}
-                style={ui.inputField}
+                style={styles.inputField}
               />
               <input
                 type="text"
-                placeholder="کپشن یا تاریخ این خاطره قشنگ..."
+                placeholder="خاطره یا تاریخ این عکس قشنگ..."
                 value={photoCaption}
                 onChange={e => setPhotoCaption(e.target.value)}
-                style={ui.inputField}
+                style={styles.inputField}
               />
-              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
-                چسباندن عکس به آلبوم پولاروید 📷✨
+              <button type="submit" style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
+                چسباندن به تخته پولاروید 📷
               </button>
             </form>
 
-            <div style={ui.polaroidGrid}>
+            <div style={styles.polaroidContainer}>
               {photos.length === 0 ? (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#aaa', padding: '30px' }}>
-                  هنوز عکسی اضافه نشده! اولین عکس سفر یا یادگاری‌هامون رو اضافه کن 🌸
-                </div>
+                <p style={{ textAlign: 'center', color: '#999', gridColumn: '1/-1', padding: '30px' }}>
+                  عکسی ثبت نشده! اولین عکسمون رو بذار تا روی تخته سنجاق بشه 🍓
+                </p>
               ) : (
-                photos.map((p, idx) => (
+                photos.map((p, i) => (
                   <div
                     key={p.id}
-                    className="polaroid-card"
+                    className="polaroid-frame"
                     style={{
-                      transform: `rotate(${idx % 2 === 0 ? '-3deg' : '3deg'})`,
-                      transition: 'all 0.3s ease'
+                      transform: `rotate(${i % 2 === 0 ? '-3deg' : '4deg'})`,
+                      background: '#fff',
+                      padding: '12px 12px 20px',
+                      borderRadius: '8px',
+                      boxShadow: '0 12px 25px rgba(0,0,0,0.2)'
                     }}
-                    onClick={() => spawnFloating('💖')}
                   >
-                    <div style={ui.tapeEffect}></div>
-                    <img src={p.image_url} alt={p.title} style={ui.polaroidImg} />
-                    <div style={ui.polaroidCaption}>
-                      <span>{p.title || 'لحظه عاشقانه ما 🤍'}</span>
-                      <span style={{ fontSize: '1.2rem', cursor: 'pointer' }}>❤️</span>
-                    </div>
+                    <div style={styles.tape} />
+                    <img src={p.image_url} alt={p.title} style={styles.polaroidImg} />
+                    <p style={{ textAlign: 'center', fontWeight: 800, marginTop: '10px', color: '#333' }}>
+                      {p.title || 'ماجراجویی عاشقانه'}
+                    </p>
                   </div>
                 ))
               )}
@@ -410,61 +577,64 @@ export default function App() {
           </div>
         )}
 
-        {/* ۳. یادداشت‌های آنلاین مخفی دوطرفه با Supabase */}
+        {/* ۴. یادداشت‌های آنلاین Supabase */}
         {activeTab === 'notes' && (
-          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
-            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>صندوقچه نامه‌ها و پچ‌پچ‌های دو نفره 💌</h2>
+          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>صندوق پچ‌پچ‌ها و نامه‌های زنده 💌</h2>
             <form onSubmit={addNote} style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                <select value={author} onChange={e => setAuthor(e.target.value)} style={ui.selectField}>
-                  <option value="طاها 🤴🏻 (کروکودیل مهربون)">طاها 🤴🏻</option>
-                  <option value="آنا 👸🏼 (جوجوی قشنگم)">آنا 👸🏼</option>
+                <select value={author} onChange={e => setAuthor(e.target.value)} style={styles.selectField}>
+                  <option value="طاها 🦓 (کروکودیل مهربون)">طاها 🦓</option>
+                  <option value="آنا 🐥 (جوجوی قشنگم)">آنا 🐥</option>
                 </select>
                 <input
                   type="text"
-                  placeholder="حرف دلتو بنویس تا آنلاین ثبت بشه..."
+                  placeholder="یه جمله خوشگل برام بنویس..."
                   value={newNote}
                   onChange={e => setNewNote(e.target.value)}
-                  style={{ ...ui.inputField, flex: 1 }}
+                  style={{ ...styles.inputField, flex: 1 }}
                 />
               </div>
-              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
-                فرستادن پروانه عشق 💬💕
+              <button type="submit" style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
+                ارسال به دیتابیس ابری 🚀
               </button>
             </form>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '380px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
               {notes.map(n => (
                 <div
                   key={n.id}
                   style={{
-                    ...ui.bubbleMessage,
+                    padding: '12px 18px',
+                    borderRadius: '18px',
+                    maxWidth: '80%',
                     alignSelf: n.sender.includes('آنا') ? 'flex-end' : 'flex-start',
                     background: n.sender.includes('آنا') ? '#fff0f6' : '#f0f9ff',
-                    border: `2px solid ${n.sender.includes('آنا') ? '#ffccd5' : '#bae6fd'}`
+                    border: `2px solid ${n.sender.includes('آنا') ? '#ffccd5' : '#bae6fd'}`,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
                   }}
                 >
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: themeStyles.primary }}>{n.sender}:</div>
-                  <div style={{ marginTop: '4px', fontSize: '0.95rem', color: '#333' }}>{n.message}</div>
+                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: t.primary }}>{n.sender}: </span>
+                  <p style={{ marginTop: '4px', color: '#333' }}>{n.message}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ۴. چک‌لیست آرزوها و ماجراجویی‌ها */}
+        {/* ۵. دفترچه آرزوها */}
         {activeTab === 'bucket' && (
-          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
-            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>دفترچه آرزوها و نقشه‌های دونفره 🌟</h2>
+          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>دفترچه ماجراجویی‌ها و آرزوها 🌟</h2>
             <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <input
                 type="text"
-                placeholder="یه نقشه باحال یا جای قشنگ بنویس که بریم..."
+                placeholder="یه قرار جدید تو اصفهان یا یه سفر باحال بنویس..."
                 value={newWish}
                 onChange={e => setNewWish(e.target.value)}
-                style={{ ...ui.inputField, flex: 1 }}
+                style={{ ...styles.inputField, flex: 1 }}
               />
-              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
+              <button type="submit" style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
                 ثبت نقشه 🗺️
               </button>
             </form>
@@ -475,71 +645,23 @@ export default function App() {
                   key={item.id}
                   onClick={() => toggleBucket(item.id, item.completed)}
                   style={{
-                    ...ui.bucketCard,
-                    background: item.completed ? '#e8f5e9' : '#fff',
-                    borderColor: item.completed ? '#81c784' : themeStyles.border
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '14px 18px',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    background: item.completed ? '#e8f5e9' : (t.id === 'zebra' ? '#111' : '#fff'),
+                    border: `2px solid ${item.completed ? '#81c784' : t.border}`
                   }}
                 >
-                  <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#2e7d32' : '#444' }}>
-                    {item.completed ? '🎉' : '🤍'} {item.task}
+                  <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#2e7d32' : (t.id === 'zebra' ? '#fff' : '#333'), fontWeight: 700 }}>
+                    {item.completed ? '✅' : '🤍'} {item.task}
                   </span>
                   <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                    {item.completed ? 'تیک خورد!' : 'کلیک برای انجام'}
+                    {item.completed ? 'انجام شد!' : 'کلیک برای انجام'}
                   </span>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* ۵. مینی‌گیم و گردونه قرارها */}
-        {activeTab === 'fun' && (
-          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
-            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>گردونه ماجراجویی و مینی‌گیم سریع 🎡🎮</h2>
-
-            {/* گردونه قرارهای عاشقانه */}
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <div style={{ ...ui.spinResultBox, borderColor: themeStyles.primary }}>
-                {spinResult ? spinResult : 'گردونه منتظر دستور توئه! 🎲'}
-              </div>
-              <button
-                onClick={spinAdventures}
-                disabled={isSpinning}
-                style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}
-              >
-                {isSpinning ? 'داره تند تند می‌چرخه... 🌀' : 'بچرخون ببینیم کجا بریم! 🍓'}
-              </button>
-            </div>
-
-            {/* مینی‌گیم شکار جوجو و کروکودیل برای سرگرمی فوری */}
-            <div style={{ background: '#fff', padding: '20px', borderRadius: '20px', border: `2px solid ${themeStyles.border}`, textAlign: 'center' }}>
-              <h3 style={{ color: themeStyles.primary, fontSize: '1.1rem', marginBottom: '8px' }}>بازی بازتاب سریع: جوجو رو بگیر! 🐥</h3>
-              <p style={{ color: '#777', fontSize: '0.85rem', marginBottom: '14px' }}>
-                امتیاز شادی شما: <strong>{gameScore}</strong>
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                <button
-                  onClick={() => { setGameScore(s => s + 1); spawnFloating('🐥'); }}
-                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
-                  className="game-target"
-                >
-                  🐥
-                </button>
-                <button
-                  onClick={() => { setGameScore(s => s + 2); spawnFloating('🐊'); }}
-                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
-                  className="game-target"
-                >
-                  🐊
-                </button>
-                <button
-                  onClick={() => { setGameScore(s => s + 3); spawnFloating('🦓'); }}
-                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
-                  className="game-target"
-                >
-                  🦓
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -559,24 +681,27 @@ export default function App() {
           25% { transform: rotate(-8deg); }
           75% { transform: rotate(8deg); }
         }
-        .polaroid-card:hover {
-          transform: rotate(0deg) scale(1.06) !important;
-          z-index: 10;
-        }
-        .mascot-hover:hover {
-          transform: scale(1.3);
+        .interactive-animal {
           cursor: pointer;
+          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .game-target:active {
-          transform: scale(0.85);
+        .interactive-animal:hover {
+          transform: scale(1.35) rotate(8deg);
+        }
+        .polaroid-frame {
+          transition: transform 0.3s ease, z-index 0.3s ease;
+        }
+        .polaroid-frame:hover {
+          transform: rotate(0deg) scale(1.08) !important;
+          z-index: 10;
         }
       `}</style>
     </div>
   );
 }
 
-const ui = {
-  gateContainer: {
+const styles = {
+  gateWrapper: {
     height: '100vh',
     display: 'flex',
     justifyContent: 'center',
@@ -586,7 +711,7 @@ const ui = {
     padding: '16px'
   },
   gateCard: {
-    background: 'rgba(255, 255, 255, 0.92)',
+    background: 'rgba(255, 255, 255, 0.94)',
     backdropFilter: 'blur(20px)',
     border: '3px solid #ffccd5',
     borderRadius: '32px',
@@ -594,7 +719,7 @@ const ui = {
     textAlign: 'center',
     maxWidth: '400px',
     width: '100%',
-    boxShadow: '0 20px 45px rgba(255, 75, 130, 0.28)'
+    boxShadow: '0 20px 45px rgba(255, 75, 130, 0.3)'
   },
   gateInput: {
     width: '100%',
@@ -604,7 +729,7 @@ const ui = {
     outline: 'none',
     textAlign: 'center',
     fontSize: '1.05rem',
-    color: '#ff2a70',
+    color: '#ff1493',
     boxSizing: 'border-box'
   },
   gateBtn: {
@@ -613,141 +738,135 @@ const ui = {
     padding: '14px',
     borderRadius: '16px',
     border: 'none',
-    background: 'linear-gradient(135deg, #ff2a70, #ff758c)',
+    background: 'linear-gradient(135deg, #ff1493, #ff69b4)',
     color: '#fff',
     fontWeight: 'bold',
     fontSize: '1.05rem',
     cursor: 'pointer',
-    boxShadow: '0 8px 24px rgba(255, 42, 112, 0.35)'
+    boxShadow: '0 8px 24px rgba(255, 20, 147, 0.35)'
   },
-  wrapper: {
+  appContainer: {
     minHeight: '100vh',
     direction: 'rtl',
-    paddingBottom: '70px',
+    paddingBottom: '80px',
     transition: 'background 0.5s ease'
+  },
+  floatingAudioPlayer: {
+    position: 'fixed',
+    bottom: '20px',
+    left: '20px',
+    background: 'rgba(0, 0, 0, 0.85)',
+    backdropFilter: 'blur(10px)',
+    padding: '8px 16px',
+    borderRadius: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    zIndex: 9998,
+    border: '2px solid'
+  },
+  playCircle: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    border: 'none',
+    color: '#fff',
+    fontSize: '1.1rem',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   navbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '12px 20px',
-    background: 'rgba(255, 255, 255, 0.88)',
-    backdropFilter: 'blur(12px)',
-    borderBottom: '2px solid'
+    padding: '12px 24px',
+    borderBottom: '2px solid',
+    backdropFilter: 'blur(10px)'
   },
-  miniActionBtn: {
+  badgeBtn: {
     background: '#fff',
     border: '1px solid #ffd1dc',
-    borderRadius: '16px',
-    padding: '4px 10px',
+    borderRadius: '18px',
+    padding: '6px 12px',
     fontSize: '0.8rem',
-    fontWeight: 700,
-    cursor: 'pointer'
-  },
-  musicBtn: {
-    background: '#fff',
-    border: '2px solid',
-    padding: '6px 14px',
-    borderRadius: '20px',
-    fontWeight: 'bold',
-    fontSize: '0.85rem',
-    cursor: 'pointer'
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
   },
   themeSelectorBar: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '8px',
-    padding: '10px 14px',
-    background: 'rgba(255, 255, 255, 0.65)',
+    gap: '10px',
+    padding: '10px 16px',
+    background: 'rgba(0, 0, 0, 0.1)',
     flexWrap: 'wrap'
   },
   themeBtn: {
-    border: 'none',
-    padding: '6px 14px',
-    borderRadius: '18px',
+    padding: '8px 16px',
+    borderRadius: '20px',
     fontWeight: 800,
-    fontSize: '0.8rem',
-    cursor: 'pointer',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+    fontSize: '0.85rem',
+    cursor: 'pointer'
   },
-  tabContainer: {
+  navTabs: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '8px',
+    gap: '10px',
     padding: '16px 10px',
     flexWrap: 'wrap'
   },
-  tabItem: {
-    padding: '10px 16px',
+  tabButton: {
+    padding: '10px 18px',
     borderRadius: '25px',
     fontWeight: 800,
     fontSize: '0.9rem',
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
     transition: 'all 0.2s'
   },
-  main: {
-    maxWidth: '740px',
+  mainContent: {
+    maxWidth: '760px',
     margin: '10px auto',
     padding: '0 16px'
   },
   card: {
-    borderRadius: '28px',
+    borderRadius: '30px',
     padding: '28px',
-    boxShadow: '0 18px 45px rgba(255, 143, 163, 0.25)',
-    border: '2px solid #fff'
+    border: '3px solid',
+    boxShadow: '0 20px 45px rgba(0,0,0,0.2)'
   },
-  titleText: {
+  cardTitle: {
     textAlign: 'center',
     fontWeight: 900,
-    fontSize: '1.35rem',
-    marginBottom: '20px'
+    fontSize: '1.4rem',
+    marginBottom: '22px'
   },
   counterGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '10px'
+    gap: '12px'
   },
   counterBox: {
-    background: '#fff',
-    border: '2px solid #ffccd5',
-    borderRadius: '18px',
-    padding: '14px 4px',
+    border: '3px solid',
+    borderRadius: '22px',
+    padding: '16px 4px',
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.04)'
+    boxShadow: '0 6px 15px rgba(0,0,0,0.1)'
   },
-  polaroidGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '24px',
-    padding: '20px 10px'
+  counterNum: {
+    fontSize: '2.4rem',
+    fontWeight: 900,
+    lineHeight: 1.1
   },
-  tapeEffect: {
-    width: '60px',
-    height: '18px',
-    background: 'rgba(255, 230, 180, 0.6)',
-    margin: '-8px auto 8px',
-    borderRadius: '2px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-  },
-  polaroidImg: {
-    width: '100%',
-    height: '170px',
-    objectFit: 'cover',
-    borderRadius: '4px'
-  },
-  polaroidCaption: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '10px',
-    fontWeight: 700,
-    fontSize: '0.85rem',
-    color: '#444'
+  counterLabel: {
+    fontSize: '0.9rem',
+    fontWeight: 800,
+    marginTop: '6px'
   },
   inputField: {
     padding: '12px 16px',
@@ -764,40 +883,34 @@ const ui = {
     fontWeight: 'bold',
     background: '#fff'
   },
-  primaryBtn: {
+  actionBtn: {
     width: '100%',
-    padding: '13px',
-    borderRadius: '16px',
+    padding: '14px',
+    borderRadius: '18px',
     border: 'none',
     color: '#fff',
     fontWeight: 800,
     fontSize: '1rem',
     cursor: 'pointer',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.12)'
+    boxShadow: '0 6px 18px rgba(0,0,0,0.15)'
   },
-  bubbleMessage: {
-    borderRadius: '20px',
-    padding: '12px 18px',
-    maxWidth: '82%',
-    boxShadow: '0 3px 10px rgba(0,0,0,0.03)'
+  polaroidContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '24px',
+    padding: '15px'
   },
-  bucketCard: {
-    padding: '14px 18px',
-    borderRadius: '16px',
-    border: '2px solid',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    cursor: 'pointer'
+  tape: {
+    width: '60px',
+    height: '18px',
+    background: 'rgba(255, 235, 179, 0.7)',
+    margin: '-16px auto 10px',
+    borderRadius: '2px'
   },
-  spinResultBox: {
-    padding: '24px',
-    background: '#fff',
-    border: '3px dashed',
-    borderRadius: '22px',
-    fontSize: '1.2rem',
-    fontWeight: 900,
-    color: '#ff2a70',
-    marginBottom: '15px'
+  polaroidImg: {
+    width: '100%',
+    height: '170px',
+    objectFit: 'cover',
+    borderRadius: '4px'
   }
 };
