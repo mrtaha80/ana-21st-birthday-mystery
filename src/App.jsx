@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// اتصال به پروژه سوپابیس اختصاصی شما
 const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
-// کلید عمومی پروژه (anon public key را از تب Project Settings > API بردار یا کلید پیش‌فرض را بذار)
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -13,8 +11,9 @@ export default function App() {
   const [passError, setPassError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('pink'); // pink, zebra, croc, chick
 
-  // استیت‌های دیتابیس آنلاین
+  // داده‌های دیتابیس آنلاین
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
   const [author, setAuthor] = useState('طاها');
@@ -23,16 +22,15 @@ export default function App() {
   const [photoCaption, setPhotoCaption] = useState('');
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
-  const [mood, setMood] = useState({ ana: '🌸 پرانرژی و درخشان', taha: '💖 غرق در عشق تو' });
 
-  // تعاملی و پرانرژی
-  const [hearts, setHearts] = useState([]);
-  const [dopaminePoints, setDopaminePoints] = useState(0);
-  const [currentCompliment, setCurrentCompliment] = useState('دکمه زیر رو بزن تا راز خوشگلیتو بهت بگم 🍓');
+  // استیت‌های انیمیشن و فان
+  const [floatingItems, setFloatingItems] = useState([]);
+  const [gameScore, setGameScore] = useState(0);
   const [spinResult, setSpinResult] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [sparkleQuote, setSparkleQuote] = useState('روی جوجو کلیک کن تا یه جمله شاد بشنوی! 🐥✨');
 
-  // تایمر رابطه از ۸ آگوست ۲۰۲۶
+  // شمارنده عشق از ۸ آگوست ۲۰۲۶
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // بارگذاری داده‌ها از دیتابیس
+  // واکشی داده‌ها از Supabase
   useEffect(() => {
     if (unlocked) {
       fetchNotes();
@@ -71,7 +69,7 @@ export default function App() {
     if (data) {
       setNotes([data[0], ...notes]);
       setNewNote('');
-      triggerHearts();
+      spawnFloating('💌');
     }
   };
 
@@ -88,7 +86,7 @@ export default function App() {
       setPhotos([data[0], ...photos]);
       setNewPhotoUrl('');
       setPhotoCaption('');
-      triggerHearts();
+      spawnFloating('📸');
     }
   };
 
@@ -104,54 +102,56 @@ export default function App() {
     if (data) {
       setBucketList([...bucketList, data[0]]);
       setNewWish('');
+      spawnFloating('🌟');
     }
   };
 
   const toggleBucket = async (id, currentStatus) => {
     await supabase.from('bucket_list').update({ completed: !currentStatus }).eq('id', id);
     setBucketList(bucketList.map(item => item.id === id ? { ...item, completed: !currentStatus } : item));
-    triggerHearts();
+    spawnFloating('🎉');
   };
 
-  // باران قلب
-  const triggerHearts = () => {
-    setDopaminePoints(prev => prev + 1);
+  // بارش آیکون‌های تعاملی
+  const spawnFloating = (emoji) => {
     const id = Date.now();
-    const newHearts = Array.from({ length: 15 }).map((_, i) => ({
+    const newItems = Array.from({ length: 14 }).map((_, i) => ({
       id: id + i,
+      emoji: emoji || '💖',
       left: Math.random() * 90 + 5,
-      duration: Math.random() * 1.5 + 1.2
+      duration: Math.random() * 1.5 + 1.2,
+      size: Math.random() * 1.2 + 1.3
     }));
-    setHearts(prev => [...prev, ...newHearts]);
+    setFloatingItems(prev => [...prev, ...newItems]);
     setTimeout(() => {
-      setHearts(prev => prev.filter(h => !newHearts.some(nh => nh.id === h.id)));
-    }, 2600);
+      setFloatingItems(prev => prev.filter(item => !newItems.some(ni => ni.id === item.id)));
+    }, 2500);
   };
 
-  const compliments = [
-    "آنا، درخشش چشم‌هات قشنگ‌ترین موج نور کائنات برای منه! ✨💖",
-    "این که فکرت با سرعت نور پرواز می‌کنه همون جادوییه که دیوونشم 🌸",
-    "تو شیرین‌ترین و نازترین توت‌فرنگی این دنیایی 🍓🎀",
-    "یادت باشه تو هر ثانیه از شبانه‌روز، یکی هست که با تمام وجود حواسش بهته 🤍",
-    "صدای خنده‌‌هات جذاب‌ترین قطعه موسیقیه که شنیدم 🎶💕"
+  const quotes = [
+    "آنا قشنگم، لبخندت حتی کروکودیل‌ها رو هم عاشق و مهربون می‌کنه! 🐊💖",
+    "گورخر صورتی قصه‌مون میگه راه‌راه‌های زندگیم فقط با خنده‌هات قشنگه 🦓🌸",
+    "جوجو طلایی میگه: تو قشنگ‌ترین پروانه تو کل اصفهان و جهانی! 🐥✨",
+    "هر ثانیه که باهمیم یه رنگین‌کمون از خاطرات شیرینه 🍓🍭",
+    "یادت نره امروز یه دوش آب گرم بگیری و بدونی چقدر عزیزی 🤍🎀"
   ];
 
-  const dateIdeas = [
-    "شام شبانه و قدم زدن زیر نورهای پل خواجو 🌉",
-    "سفارش پیتزا قارچ و گوشت و مسابقه تو ویدیوگیم 🍕🎮",
-    "خوردن وافل توت‌فرنگی با نوتلای اضافه تو کافه صورتی 🍓☕",
-    "درست کردن اسموتی میوه‌ای دوتایی با خنده‌های بی‌وقفه 🥤",
-    "دیدن یه فیلم هیجان‌انگیز و بغل کردن بالش‌ها 🍿"
+  const adventures = [
+    "قدم زدن دوتایی روی سی‌وسه‌پل و عکس سلفی با فیلتر کروکودیل! 🌉🐊",
+    "خوردن شیرینی دانمارکی و وافل نوتلایی با آبمیوه توت‌فرنگی 🍓🧇",
+    "کشف کردن یه کافه با دکور چوبی و دنج تو جلفا ☕🌿",
+    "مسابقه ساختن خنده‌دارترین میم‌های گورخری با همدیگه 🦓😂",
+    "شب‌نشینی و دیدن انیمیشن درحالی که پتوی پشمی رومونه 🎬🍿"
   ];
 
-  const spinDate = () => {
+  const spinAdventures = () => {
     if (isSpinning) return;
     setIsSpinning(true);
     let count = 0;
     const interval = setInterval(() => {
-      setSpinResult(dateIdeas[Math.floor(Math.random() * dateIdeas.length)]);
+      setSpinResult(adventures[Math.floor(Math.random() * adventures.length)]);
       count++;
-      if (count > 16) {
+      if (count > 15) {
         clearInterval(interval);
         setIsSpinning(false);
       }
@@ -162,6 +162,7 @@ export default function App() {
     e.preventDefault();
     if (['0808', 'ana', 'taha', '1405'].includes(passcode.trim().toLowerCase())) {
       setUnlocked(true);
+      spawnFloating('🌸');
     } else {
       setPassError(true);
       setTimeout(() => setPassError(false), 2000);
@@ -177,28 +178,62 @@ export default function App() {
     }
   };
 
+  // تم‌های پویا
+  const themeStyles = {
+    pink: {
+      bg: 'linear-gradient(180deg, #fff0f5 0%, #ffe0ea 100%)',
+      primary: '#ff2a70',
+      accent: '#ff758c',
+      cardBg: 'rgba(255, 255, 255, 0.94)',
+      border: '#ffccd5',
+      badge: '🌸 دنیای صورتی نانازی'
+    },
+    zebra: {
+      bg: 'radial-gradient(circle, #fff 20%, #ffeef5 40%, #ffc2d1 100%)',
+      primary: '#d81b60',
+      accent: '#4a154b',
+      cardBg: 'rgba(255, 255, 255, 0.96)',
+      border: '#f06292',
+      badge: '🦓 گورخر صورتی فانتزی'
+    },
+    croc: {
+      bg: 'linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%)',
+      primary: '#2e7d32',
+      accent: '#66bb6a',
+      cardBg: 'rgba(255, 255, 255, 0.95)',
+      border: '#a5d6a7',
+      badge: '🐊 مرداب کروکودیل عاشق'
+    },
+    chick: {
+      bg: 'linear-gradient(180deg, #fffde7 0%, #fff9c4 100%)',
+      primary: '#f57f17',
+      accent: '#fbc02d',
+      cardBg: 'rgba(255, 255, 255, 0.95)',
+      border: '#ffe082',
+      badge: '🐥 مزرعه جوجو کوچولو'
+    }
+  }[currentTheme];
+
   if (!unlocked) {
     return (
-      <div style={styles.gate}>
-        <div style={styles.gateBox}>
-          <div style={{ fontSize: '3.6rem', marginBottom: '10px' }}>🎀🍓💖</div>
-          <h1 style={{ color: '#ff2a70', fontSize: '1.9rem', fontWeight: 900, marginBottom: '8px' }}>
-            قلمرو عشق طاها و آنا
+      <div style={ui.gateContainer}>
+        <div style={ui.gateCard}>
+          <div style={{ fontSize: '3.8rem', animation: 'bounce 1.5s infinite' }}>🦓🐊🐥💖</div>
+          <h1 style={{ color: '#ff2a70', fontSize: '1.9rem', fontWeight: 900, margin: '14px 0 6px' }}>
+            سرزمین اختصاصی طاها و آنا
           </h1>
-          <p style={{ color: '#ff7096', fontSize: '0.95rem', marginBottom: '22px' }}>
-            کلید ورود به امن‌ترین و زیباترین کهکشان دو نفره‌مون رو وارد کن ✨
+          <p style={{ color: '#ff7597', fontSize: '0.95rem', marginBottom: '22px' }}>
+            کلید کهکشان حیوانات نانازی و رمانتیک رو بزن پرنسس ✨
           </p>
           <form onSubmit={handleUnlock}>
             <input
               type="password"
-              placeholder="رمز ورود (0808 یا ana)"
+              placeholder="رمز عبور (مثلاً 0808)"
               value={passcode}
               onChange={(e) => setPasscode(e.target.value)}
-              style={styles.gateInput}
+              style={ui.gateInput}
             />
-            <button type="submit" style={styles.gateSubmit}>
-              ورود به دنیای ما 🗝️🌸
-            </button>
+            <button type="submit" style={ui.gateBtn}>ورود به سرزمین شگفتی‌ها 🗝️🎀</button>
           </form>
           {passError && <p style={{ color: '#ff0055', marginTop: '12px', fontWeight: 'bold' }}>رمز اشتباهه خوشگلم! دوباره بزن 🥺</p>}
         </div>
@@ -207,66 +242,73 @@ export default function App() {
   }
 
   return (
-    <div style={styles.page}>
-      {/* موزیک بی‌‌نظیر و لطیف پیانو والز فرانسوی */}
+    <div style={{ ...ui.wrapper, background: themeStyles.bg }}>
       <audio
         id="bg-music"
         loop
         src="https://cdn.pixabay.com/download/audio/2022/11/06/audio_c35f2991cf.mp3?filename=waltz-of-the-flowers-romantic-piano-126231.mp3"
       />
 
-      {/* باران انیمیشنی قلب */}
-      {hearts.map(h => (
+      {/* باران انیمیشنی معلق */}
+      {floatingItems.map(item => (
         <span
-          key={h.id}
+          key={item.id}
           style={{
             position: 'fixed',
-            left: `${h.left}%`,
+            left: `${item.left}%`,
             bottom: '0px',
-            fontSize: '2rem',
-            animation: `floatUp ${h.duration}s linear forwards`,
+            fontSize: `${item.size}rem`,
+            animation: `floatUp ${item.duration}s linear forwards`,
             zIndex: 9999,
             pointerEvents: 'none'
           }}
         >
-          💖
+          {item.emoji}
         </span>
       ))}
 
-      {/* نوار بالایی */}
-      <header style={styles.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.8rem' }}>🍓</span>
-          <span style={{ fontWeight: 900, color: '#ff2a70', fontSize: '1.25rem' }}>Taha & Ana's Pink Universe</span>
+      {/* هدر بالایی و سلکتور تم‌های جذاب */}
+      <header style={{ ...ui.navbar, borderColor: themeStyles.border }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1.8rem', animation: 'wiggle 2s infinite' }}>🦓💖🐊🐥</span>
+          <span style={{ fontWeight: 900, color: themeStyles.primary, fontSize: '1.2rem' }}>Taha & Ana Land</span>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={triggerHearts} style={styles.heartRainBtn}>
-            باران قلب! ⚡ ({dopaminePoints})
-          </button>
-          <button onClick={toggleMusic} style={styles.soundBtn}>
-            {isPlaying ? '⏸ نوای پیانو' : '🎶 پخش والس پیانو'}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button onClick={() => spawnFloating('🦓')} style={ui.miniActionBtn}>🦓 گورخر</button>
+          <button onClick={() => spawnFloating('🐊')} style={ui.miniActionBtn}>🐊 کروکودیل</button>
+          <button onClick={() => spawnFloating('🐥')} style={ui.miniActionBtn}>🐥 جوجو</button>
+          <button onClick={toggleMusic} style={{ ...ui.musicBtn, borderColor: themeStyles.accent, color: themeStyles.primary }}>
+            {isPlaying ? '⏸ قطع پیانو' : '🎶 والس فرانسوی'}
           </button>
         </div>
       </header>
 
-      {/* منوی دسترسی به صفحات مختلف */}
-      <nav style={styles.tabsNav}>
+      {/* نوار انتخاب تم جادویی */}
+      <div style={ui.themeSelectorBar}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: themeStyles.primary }}>تغییر حال و هوای تم:</span>
+        <button onClick={() => setCurrentTheme('pink')} style={{ ...ui.themeBtn, background: '#ffccd5' }}>🌸 صورتی</button>
+        <button onClick={() => setCurrentTheme('zebra')} style={{ ...ui.themeBtn, background: '#f8bbd0' }}>🦓 گورخر</button>
+        <button onClick={() => setCurrentTheme('croc')} style={{ ...ui.themeBtn, background: '#c8e6c9' }}>🐊 کروکودیل</button>
+        <button onClick={() => setCurrentTheme('chick')} style={{ ...ui.themeBtn, background: '#fff9c4' }}>🐥 جوجو</button>
+      </div>
+
+      {/* منوی تب‌های کاربری */}
+      <nav style={ui.tabContainer}>
         {[
-          { id: 'hub', label: 'شمارنده و مدار ما 🌸' },
-          { id: 'chat', label: 'یادداشت‌های مخفی (Live) 💬' },
-          { id: 'gallery', label: 'آلبوم عکس‌های ابری 📸' },
-          { id: 'bucket', label: 'چک‌‌لیست آرزوها ✨' },
-          { id: 'fun', label: 'گردونه قرارها 🎡' },
-          { id: 'spark', label: 'جعبه لبخند و انرژی 🍬' }
+          { id: 'hub', label: 'شمارنده عشق و حیوانات ⏳' },
+          { id: 'gallery', label: 'گالری پولاروید سه‌بعدی 📸' },
+          { id: 'notes', label: 'یادداشت‌های مخفی زنده 💬' },
+          { id: 'bucket', label: 'دفترچه آرزوهای دوتایی 🌟' },
+          { id: 'fun', label: 'گردونه قرارها و مینی‌گیم 🎡' }
         ].map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
             style={{
-              ...styles.tabLink,
-              background: activeTab === t.id ? 'linear-gradient(135deg, #ff2a70, #ff758c)' : '#fff',
-              color: activeTab === t.id ? '#fff' : '#c2185b',
-              border: activeTab === t.id ? 'none' : '2px solid #ffccd5'
+              ...ui.tabItem,
+              background: activeTab === t.id ? `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` : '#fff',
+              color: activeTab === t.id ? '#fff' : themeStyles.primary,
+              border: `2px solid ${themeStyles.border}`
             }}
           >
             {t.label}
@@ -274,114 +316,93 @@ export default function App() {
         ))}
       </nav>
 
-      {/* پنل‌های تعاملی اصلی */}
-      <main style={styles.content}>
-        {/* ۱. هاب و شمارنده زمان */}
+      {/* بدنه و صفحات */}
+      <main style={ui.main}>
+        {/* ۱. تب اصلی، شمارنده و مینی آواتارهای دونفره */}
         {activeTab === 'hub' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>ثانیه‌شمار ابدیت با تو ⏳💕</h2>
-            <div style={styles.timerRow}>
-              <div style={styles.timerBlock}><span>{timeTogether.days}</span><label>روز</label></div>
-              <div style={styles.timerBlock}><span>{timeTogether.hours}</span><label>ساعت</label></div>
-              <div style={styles.timerBlock}><span>{timeTogether.minutes}</span><label>دقیقه</label></div>
-              <div style={styles.timerBlock}><span>{timeTogether.seconds}</span><label>ثانیه</label></div>
+          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
+            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>ثانیه‌شمار دنیای مشترک طاها و آنا 💕</h2>
+            <div style={ui.counterGrid}>
+              <div style={ui.counterBox}><span>{timeTogether.days}</span><label>روز عاشقی</label></div>
+              <div style={ui.counterBox}><span>{timeTogether.hours}</span><label>ساعت</label></div>
+              <div style={ui.counterBox}><span>{timeTogether.minutes}</span><label>دقیقه</label></div>
+              <div style={ui.counterBox}><span>{timeTogether.seconds}</span><label>ثانیه</label></div>
             </div>
-            <p style={{ textAlign: 'center', color: '#ff2a70', marginTop: '22px', fontWeight: 700, fontSize: '1.05rem' }}>
-              «از ۸ آگوست ۲۰۲۶ تا همیشه؛ هر تپش قلبم گواهی میده که دنیای من با تو قشنگ‌تره...»
-            </p>
 
-            <div style={{ marginTop: '30px', padding: '20px', background: '#fff5f8', borderRadius: '20px', border: '2px dashed #ff8fa3' }}>
-              <h3 style={{ color: '#d81b60', fontSize: '1.1rem', marginBottom: '10px' }}>وضعیت هوای قلب ما دوتا ☁️💖</h3>
-              <div style={{ display: 'flex', justifyContent: 'space-around', gap: '10px' }}>
-                <div style={styles.moodBadge}>
-                  <strong>حال طاها:</strong>
-                  <span>{mood.taha}</span>
-                </div>
-                <div style={styles.moodBadge}>
-                  <strong>حال آنا:</strong>
-                  <span>{mood.ana}</span>
-                </div>
+            <div style={{ textAlign: 'center', margin: '25px 0 10px' }}>
+              <div style={{ fontSize: '3.2rem', display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                <span className="mascot-hover" onClick={() => spawnFloating('🐊')}>🐊</span>
+                <span className="mascot-hover" onClick={() => spawnFloating('💖')}>💖</span>
+                <span className="mascot-hover" onClick={() => spawnFloating('🐥')}>🐥</span>
+                <span className="mascot-hover" onClick={() => spawnFloating('🦓')}>🦓</span>
               </div>
+              <p style={{ color: themeStyles.primary, fontWeight: 800, marginTop: '8px' }}>
+                روی هر کدوم از حیوونا بزنی، یه بارون خوشگل از آسمون می‌باره! 🌈
+              </p>
+            </div>
+
+            <div style={{ background: '#fff', padding: '18px', borderRadius: '20px', border: `2px dashed ${themeStyles.border}`, textAlign: 'center', marginTop: '16px' }}>
+              <p style={{ fontSize: '1.05rem', color: themeStyles.primary, fontWeight: 700 }}>{sparkleQuote}</p>
+              <button
+                onClick={() => setSparkleQuote(quotes[Math.floor(Math.random() * quotes.length)])}
+                style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})`, marginTop: '10px' }}
+              >
+                جمله‌ قشنگ بعدی برای آنا 🍬
+              </button>
             </div>
           </div>
         )}
 
-        {/* ۲. چت‌باکس و یادداشت‌های ابری با Supabase */}
-        {activeTab === 'chat' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>صندوقچه یادداشت‌های مخفی (آنلاین) 💌</h2>
-            <p style={{ textAlign: 'center', color: '#888', marginBottom: '18px', fontSize: '0.9rem' }}>
-              هر پیامی اینجا بنویسی مستقیماً توی دیتابیس ابری ذخیره میشه تا دوتامون ببینیم!
-            </p>
-
-            <form onSubmit={addNote} style={{ marginBottom: '25px' }}>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                <select value={author} onChange={e => setAuthor(e.target.value)} style={styles.selectStyle}>
-                  <option value="طاها">از طرف طاها 🤴🏻</option>
-                  <option value="آنا">از طرف آنا 👸🏼</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="یه حرف عاشقانه یا یادداشت قشنگ بنویس..."
-                  value={newNote}
-                  onChange={e => setNewNote(e.target.value)}
-                  style={{ ...styles.inputStyle, flex: 1 }}
-                />
-              </div>
-              <button type="submit" style={styles.actionBtn}>ارسال به صندوقچه مخفی ✨</button>
-            </form>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
-              {notes.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#aaa', padding: '20px' }}>هنوز پیامی ثبت نشده، اولین پیام رو بنویس! 🍓</p>
-              ) : (
-                notes.map(n => (
-                  <div key={n.id} style={{ ...styles.noteItem, alignSelf: n.sender === 'آنا' ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#ff2a70', fontWeight: 'bold' }}>{n.sender}:</div>
-                    <div style={{ fontSize: '0.95rem', color: '#333', marginTop: '4px' }}>{n.message}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ۳. گالری عکس‌های آپلود شده دونفره */}
+        {/* ۲. گالری عکس‌های تعاملی شبیه عکس‌های پولاروید چاپ شده با چرخش و سایه */}
         {activeTab === 'gallery' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>آلبوم عکس‌ها و لحظات ناب 📸🌸</h2>
-            <p style={{ textAlign: 'center', color: '#888', marginBottom: '16px', fontSize: '0.9rem' }}>
-              لینک مستقیم عکس‌های قشنگمون رو بذار تا توی آلبوم ابدی ما ثبت بشه:
+          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
+            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>آلبوم پولاروید خاطرات ما 📸🎀</h2>
+            <p style={{ textAlign: 'center', color: '#777', fontSize: '0.9rem', marginBottom: '16px' }}>
+              لینک مستقیم عکس‌های قشنگمون رو بذار تا به شکل عکس‌های پولاروید نوستالژیک اضافه بشن:
             </p>
 
             <form onSubmit={addPhoto} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
               <input
                 type="text"
-                placeholder="لینک مستقیم تصویر (مثلاً از سایت‌های آپلود عکس)"
+                placeholder="لینک مستقیم تصویر (مثلاً از سایت‌های آپلود مثل imgur یا postimages)"
                 value={newPhotoUrl}
                 onChange={e => setNewPhotoUrl(e.target.value)}
-                style={styles.inputStyle}
+                style={ui.inputField}
               />
               <input
                 type="text"
-                placeholder="کپشن یا خاطره مربوط به این عکس..."
+                placeholder="کپشن یا تاریخ این خاطره قشنگ..."
                 value={photoCaption}
                 onChange={e => setPhotoCaption(e.target.value)}
-                style={styles.inputStyle}
+                style={ui.inputField}
               />
-              <button type="submit" style={styles.actionBtn}>افزودن به گالری دونفره 🎀</button>
+              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
+                چسباندن عکس به آلبوم پولاروید 📷✨
+              </button>
             </form>
 
-            <div style={styles.galleryGrid}>
+            <div style={ui.polaroidGrid}>
               {photos.length === 0 ? (
-                <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#aaa', padding: '20px' }}>
-                  عکسی ثبت نشده، عکس سفر اصفهان یا سلفی‌هامون رو اضافه کن! 📷
+                <div style={{ gridColumn: '1/-1', textAlign: 'center', color: '#aaa', padding: '30px' }}>
+                  هنوز عکسی اضافه نشده! اولین عکس سفر یا یادگاری‌هامون رو اضافه کن 🌸
                 </div>
               ) : (
-                photos.map(p => (
-                  <div key={p.id} style={styles.photoCard}>
-                    <img src={p.image_url} alt={p.title} style={styles.photoImg} />
-                    {p.title && <div style={styles.photoCaption}>{p.title}</div>}
+                photos.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="polaroid-card"
+                    style={{
+                      transform: `rotate(${idx % 2 === 0 ? '-3deg' : '3deg'})`,
+                      transition: 'all 0.3s ease'
+                    }}
+                    onClick={() => spawnFloating('💖')}
+                  >
+                    <div style={ui.tapeEffect}></div>
+                    <img src={p.image_url} alt={p.title} style={ui.polaroidImg} />
+                    <div style={ui.polaroidCaption}>
+                      <span>{p.title || 'لحظه عاشقانه ما 🤍'}</span>
+                      <span style={{ fontSize: '1.2rem', cursor: 'pointer' }}>❤️</span>
+                    </div>
                   </div>
                 ))
               )}
@@ -389,19 +410,63 @@ export default function App() {
           </div>
         )}
 
-        {/* ۴. چک‌لیست و آرزوهای مشترک */}
+        {/* ۳. یادداشت‌های آنلاین مخفی دوطرفه با Supabase */}
+        {activeTab === 'notes' && (
+          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
+            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>صندوقچه نامه‌ها و پچ‌پچ‌های دو نفره 💌</h2>
+            <form onSubmit={addNote} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <select value={author} onChange={e => setAuthor(e.target.value)} style={ui.selectField}>
+                  <option value="طاها 🤴🏻 (کروکودیل مهربون)">طاها 🤴🏻</option>
+                  <option value="آنا 👸🏼 (جوجوی قشنگم)">آنا 👸🏼</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="حرف دلتو بنویس تا آنلاین ثبت بشه..."
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  style={{ ...ui.inputField, flex: 1 }}
+                />
+              </div>
+              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
+                فرستادن پروانه عشق 💬💕
+              </button>
+            </form>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '380px', overflowY: 'auto' }}>
+              {notes.map(n => (
+                <div
+                  key={n.id}
+                  style={{
+                    ...ui.bubbleMessage,
+                    alignSelf: n.sender.includes('آنا') ? 'flex-end' : 'flex-start',
+                    background: n.sender.includes('آنا') ? '#fff0f6' : '#f0f9ff',
+                    border: `2px solid ${n.sender.includes('آنا') ? '#ffccd5' : '#bae6fd'}`
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: themeStyles.primary }}>{n.sender}:</div>
+                  <div style={{ marginTop: '4px', fontSize: '0.95rem', color: '#333' }}>{n.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ۴. چک‌لیست آرزوها و ماجراجویی‌ها */}
         {activeTab === 'bucket' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>دفترچه اهداف و آرزوهای مشترک ✨</h2>
-            <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
+            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>دفترچه آرزوها و نقشه‌های دونفره 🌟</h2>
+            <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <input
                 type="text"
-                placeholder="یه قرار جدید، یه سفر باهم، یا یه هدف مشترک بنویس..."
+                placeholder="یه نقشه باحال یا جای قشنگ بنویس که بریم..."
                 value={newWish}
                 onChange={e => setNewWish(e.target.value)}
-                style={{ ...styles.inputStyle, flex: 1 }}
+                style={{ ...ui.inputField, flex: 1 }}
               />
-              <button type="submit" style={styles.actionBtn}>ثبت آرزو 🌟</button>
+              <button type="submit" style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}>
+                ثبت نقشه 🗺️
+              </button>
             </form>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -410,48 +475,72 @@ export default function App() {
                   key={item.id}
                   onClick={() => toggleBucket(item.id, item.completed)}
                   style={{
-                    ...styles.bucketItem,
-                    background: item.completed ? '#e8f5e9' : '#fff5f8',
-                    textDecoration: item.completed ? 'line-through' : 'none',
-                    color: item.completed ? '#2e7d32' : '#c2185b'
+                    ...ui.bucketCard,
+                    background: item.completed ? '#e8f5e9' : '#fff',
+                    borderColor: item.completed ? '#81c784' : themeStyles.border
                   }}
                 >
-                  <span>{item.completed ? '✅' : '🤍'} {item.task}</span>
-                  <span style={{ fontSize: '0.8rem', color: '#888' }}>{item.completed ? 'انجام شد!' : 'کلیک کن برای تیک زدن'}</span>
+                  <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#2e7d32' : '#444' }}>
+                    {item.completed ? '🎉' : '🤍'} {item.task}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                    {item.completed ? 'تیک خورد!' : 'کلیک برای انجام'}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ۵. گردونه تصمیم‌گیری برای قرارها */}
+        {/* ۵. مینی‌گیم و گردونه قرارها */}
         {activeTab === 'fun' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>گردونه انتخاب ماجراجویی‌های عاشقانه 🎡🍕</h2>
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
-              <div style={styles.spinBox}>
-                {spinResult ? spinResult : 'روی دکمه زیر بزن تا گردونه برامون برنامه بچینه! 🎲'}
+          <div style={{ ...ui.card, background: themeStyles.cardBg }}>
+            <h2 style={{ ...ui.titleText, color: themeStyles.primary }}>گردونه ماجراجویی و مینی‌گیم سریع 🎡🎮</h2>
+
+            {/* گردونه قرارهای عاشقانه */}
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <div style={{ ...ui.spinResultBox, borderColor: themeStyles.primary }}>
+                {spinResult ? spinResult : 'گردونه منتظر دستور توئه! 🎲'}
               </div>
-              <button onClick={spinDate} disabled={isSpinning} style={styles.actionBtn}>
-                {isSpinning ? 'در حال چرخش هیجان‌انگیز... 🌀' : 'بچرخونش پرنسس! 🍓'}
+              <button
+                onClick={spinAdventures}
+                disabled={isSpinning}
+                style={{ ...ui.primaryBtn, background: `linear-gradient(135deg, ${themeStyles.primary}, ${themeStyles.accent})` }}
+              >
+                {isSpinning ? 'داره تند تند می‌چرخه... 🌀' : 'بچرخون ببینیم کجا بریم! 🍓'}
               </button>
             </div>
-          </div>
-        )}
 
-        {/* ۶. جعبه حال خوب و پمپاژ شادی */}
-        {activeTab === 'spark' && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionHeading}>جعبه اختصاصی لبخند و حس ناب 🍬💖</h2>
-            <div style={styles.complimentContainer}>
-              <p style={{ fontSize: '1.15rem', color: '#ff0055', fontWeight: 800 }}>{currentCompliment}</p>
+            {/* مینی‌گیم شکار جوجو و کروکودیل برای سرگرمی فوری */}
+            <div style={{ background: '#fff', padding: '20px', borderRadius: '20px', border: `2px solid ${themeStyles.border}`, textAlign: 'center' }}>
+              <h3 style={{ color: themeStyles.primary, fontSize: '1.1rem', marginBottom: '8px' }}>بازی بازتاب سریع: جوجو رو بگیر! 🐥</h3>
+              <p style={{ color: '#777', fontSize: '0.85rem', marginBottom: '14px' }}>
+                امتیاز شادی شما: <strong>{gameScore}</strong>
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                <button
+                  onClick={() => { setGameScore(s => s + 1); spawnFloating('🐥'); }}
+                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
+                  className="game-target"
+                >
+                  🐥
+                </button>
+                <button
+                  onClick={() => { setGameScore(s => s + 2); spawnFloating('🐊'); }}
+                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
+                  className="game-target"
+                >
+                  🐊
+                </button>
+                <button
+                  onClick={() => { setGameScore(s => s + 3); spawnFloating('🦓'); }}
+                  style={{ fontSize: '2.5rem', background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }}
+                  className="game-target"
+                >
+                  🦓
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setCurrentCompliment(compliments[Math.floor(Math.random() * compliments.length)])}
-              style={{ ...styles.actionBtn, marginTop: '16px' }}
-            >
-              یه یادآوری قشنگ دیگه بهم بده! 🌸
-            </button>
           </div>
         )}
       </main>
@@ -461,31 +550,51 @@ export default function App() {
           0% { transform: translateY(0) scale(0.8); opacity: 1; }
           100% { transform: translateY(-100vh) scale(1.4); opacity: 0; }
         }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes wiggle {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-8deg); }
+          75% { transform: rotate(8deg); }
+        }
+        .polaroid-card:hover {
+          transform: rotate(0deg) scale(1.06) !important;
+          z-index: 10;
+        }
+        .mascot-hover:hover {
+          transform: scale(1.3);
+          cursor: pointer;
+        }
+        .game-target:active {
+          transform: scale(0.85);
+        }
       `}</style>
     </div>
   );
 }
 
-const styles = {
-  gate: {
+const ui = {
+  gateContainer: {
     height: '100vh',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    background: 'radial-gradient(circle, #ffe3ec 0%, #ffafcc 100%)',
+    background: 'radial-gradient(circle, #ffe6f0 0%, #ffafcc 100%)',
     direction: 'rtl',
     padding: '16px'
   },
-  gateBox: {
-    background: 'rgba(255, 255, 255, 0.9)',
+  gateCard: {
+    background: 'rgba(255, 255, 255, 0.92)',
     backdropFilter: 'blur(20px)',
-    border: '2px solid #ffb3c6',
+    border: '3px solid #ffccd5',
     borderRadius: '32px',
     padding: '40px 28px',
     textAlign: 'center',
-    maxWidth: '380px',
+    maxWidth: '400px',
     width: '100%',
-    boxShadow: '0 20px 45px rgba(255, 75, 130, 0.25)'
+    boxShadow: '0 20px 45px rgba(255, 75, 130, 0.28)'
   },
   gateInput: {
     width: '100%',
@@ -498,7 +607,7 @@ const styles = {
     color: '#ff2a70',
     boxSizing: 'border-box'
   },
-  gateSubmit: {
+  gateBtn: {
     width: '100%',
     marginTop: '14px',
     padding: '14px',
@@ -511,193 +620,184 @@ const styles = {
     cursor: 'pointer',
     boxShadow: '0 8px 24px rgba(255, 42, 112, 0.35)'
   },
-  page: {
+  wrapper: {
     minHeight: '100vh',
-    background: 'linear-gradient(180deg, #fff0f5 0%, #ffe3ea 100%)',
     direction: 'rtl',
-    paddingBottom: '60px'
+    paddingBottom: '70px',
+    transition: 'background 0.5s ease'
   },
-  header: {
+  navbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '14px 24px',
-    background: 'rgba(255, 255, 255, 0.85)',
+    padding: '12px 20px',
+    background: 'rgba(255, 255, 255, 0.88)',
     backdropFilter: 'blur(12px)',
-    borderBottom: '2px solid #ffccd5'
+    borderBottom: '2px solid'
   },
-  heartRainBtn: {
-    background: '#ff2a70',
-    border: 'none',
-    color: '#fff',
-    padding: '8px 16px',
-    borderRadius: '24px',
-    fontWeight: 800,
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    boxShadow: '0 4px 15px rgba(255, 42, 112, 0.3)'
-  },
-  soundBtn: {
+  miniActionBtn: {
     background: '#fff',
-    border: '2px solid #ff758c',
-    color: '#ff2a70',
+    border: '1px solid #ffd1dc',
+    borderRadius: '16px',
+    padding: '4px 10px',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
+  musicBtn: {
+    background: '#fff',
+    border: '2px solid',
     padding: '6px 14px',
-    borderRadius: '24px',
+    borderRadius: '20px',
     fontWeight: 'bold',
     fontSize: '0.85rem',
     cursor: 'pointer'
   },
-  tabsNav: {
+  themeSelectorBar: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 14px',
+    background: 'rgba(255, 255, 255, 0.65)',
+    flexWrap: 'wrap'
+  },
+  themeBtn: {
+    border: 'none',
+    padding: '6px 14px',
+    borderRadius: '18px',
+    fontWeight: 800,
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+  },
+  tabContainer: {
     display: 'flex',
     justifyContent: 'center',
     gap: '8px',
     padding: '16px 10px',
     flexWrap: 'wrap'
   },
-  tabLink: {
-    padding: '10px 18px',
+  tabItem: {
+    padding: '10px 16px',
     borderRadius: '25px',
     fontWeight: 800,
     fontSize: '0.9rem',
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(255, 175, 204, 0.25)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
     transition: 'all 0.2s'
   },
-  content: {
-    maxWidth: '720px',
+  main: {
+    maxWidth: '740px',
     margin: '10px auto',
     padding: '0 16px'
   },
   card: {
-    background: 'rgba(255, 255, 255, 0.95)',
     borderRadius: '28px',
     padding: '28px',
-    boxShadow: '0 18px 40px rgba(255, 143, 163, 0.25)',
+    boxShadow: '0 18px 45px rgba(255, 143, 163, 0.25)',
     border: '2px solid #fff'
   },
-  sectionHeading: {
+  titleText: {
     textAlign: 'center',
-    color: '#ff2a70',
     fontWeight: 900,
     fontSize: '1.35rem',
     marginBottom: '20px'
   },
-  timerRow: {
+  counterGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: '10px'
   },
-  timerBlock: {
-    background: 'linear-gradient(145deg, #fff2f6, #ffe0ea)',
-    border: '2px solid #ffb3c6',
+  counterBox: {
+    background: '#fff',
+    border: '2px solid #ffccd5',
     borderRadius: '18px',
-    padding: '16px 4px',
+    padding: '14px 4px',
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    boxShadow: '0 4px 12px rgba(255, 42, 112, 0.1)'
+    boxShadow: '0 4px 10px rgba(0,0,0,0.04)'
   },
-  moodBadge: {
-    background: '#fff',
-    border: '2px solid #ffccd5',
-    padding: '12px 18px',
-    borderRadius: '16px',
+  polaroidGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '24px',
+    padding: '20px 10px'
+  },
+  tapeEffect: {
+    width: '60px',
+    height: '18px',
+    background: 'rgba(255, 230, 180, 0.6)',
+    margin: '-8px auto 8px',
+    borderRadius: '2px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  },
+  polaroidImg: {
+    width: '100%',
+    height: '170px',
+    objectFit: 'cover',
+    borderRadius: '4px'
+  },
+  polaroidCaption: {
     display: 'flex',
-    flexDirection: 'column',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '4px',
-    fontSize: '0.95rem'
+    marginTop: '10px',
+    fontWeight: 700,
+    fontSize: '0.85rem',
+    color: '#444'
   },
-  inputStyle: {
+  inputField: {
     padding: '12px 16px',
     borderRadius: '16px',
-    border: '2px solid #ffb3c6',
+    border: '2px solid #ffccd5',
     outline: 'none',
     fontSize: '0.95rem'
   },
-  selectStyle: {
+  selectField: {
     padding: '12px',
     borderRadius: '16px',
-    border: '2px solid #ffb3c6',
+    border: '2px solid #ffccd5',
     outline: 'none',
     fontWeight: 'bold',
-    color: '#ff2a70',
     background: '#fff'
   },
-  actionBtn: {
+  primaryBtn: {
     width: '100%',
     padding: '13px',
     borderRadius: '16px',
     border: 'none',
-    background: 'linear-gradient(135deg, #ff2a70, #ff758c)',
     color: '#fff',
     fontWeight: 800,
     fontSize: '1rem',
     cursor: 'pointer',
-    boxShadow: '0 6px 18px rgba(255, 42, 112, 0.3)'
+    boxShadow: '0 6px 18px rgba(0,0,0,0.12)'
   },
-  noteItem: {
-    background: '#fff0f5',
-    border: '2px solid #ffd1dc',
-    borderRadius: '18px',
+  bubbleMessage: {
+    borderRadius: '20px',
     padding: '12px 18px',
-    maxWidth: '80%'
+    maxWidth: '82%',
+    boxShadow: '0 3px 10px rgba(0,0,0,0.03)'
   },
-  galleryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-    gap: '14px',
-    marginTop: '15px'
-  },
-  photoCard: {
-    borderRadius: '16px',
-    overflow: 'hidden',
-    border: '2px solid #ffccd5',
-    boxShadow: '0 6px 15px rgba(0,0,0,0.06)'
-  },
-  photoImg: {
-    width: '100%',
-    height: '160px',
-    objectFit: 'cover',
-    display: 'block'
-  },
-  photoCaption: {
-    padding: '8px',
-    fontSize: '0.85rem',
-    textAlign: 'center',
-    background: '#fff',
-    color: '#ff2a70',
-    fontWeight: 'bold'
-  },
-  bucketItem: {
+  bucketCard: {
     padding: '14px 18px',
     borderRadius: '16px',
-    border: '2px solid #ffd1dc',
+    border: '2px solid',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     cursor: 'pointer'
   },
-  spinBox: {
-    padding: '28px',
-    background: '#fff0f5',
-    border: '3px dashed #ff2a70',
-    borderRadius: '24px',
-    fontSize: '1.25rem',
+  spinResultBox: {
+    padding: '24px',
+    background: '#fff',
+    border: '3px dashed',
+    borderRadius: '22px',
+    fontSize: '1.2rem',
     fontWeight: 900,
     color: '#ff2a70',
-    marginBottom: '16px'
-  },
-  complimentContainer: {
-    background: '#fff0f5',
-    padding: '28px 20px',
-    borderRadius: '22px',
-    textAlign: 'center',
-    border: '2px solid #ffb3c6',
-    minHeight: '70px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
+    marginBottom: '15px'
   }
 };
