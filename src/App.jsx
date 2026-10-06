@@ -492,7 +492,7 @@ export default function App() {
             <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <input
                 type="text"
-                placeholder="یه قرار جدید تو اصفهان یا یه سفر باحال بنویس..."
+                placeholder="یه قرار جدید تو تهران یا اصفان..."
                 value={newWish}
                 onChange={e => setNewWish(e.target.value)}
                 style={{ ...styles.inputField, flex: 1 }}
