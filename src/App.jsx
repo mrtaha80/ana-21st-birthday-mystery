@@ -6,20 +6,27 @@ const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// پلی‌لیست صوتی بدون فیلتر و رمانتیک (موزیک اول کاملاً تعویض و تست‌شده)
-const ROMANTIC_PLAYLIST = [
-  { id: 1, title: 'والس رویایی و آرام (Midnight Romance Waltz) 🎻', url: 'https://cdn.freesound.org/previews/530/530415_11861866-lq.mp3' },
-  { id: 2, title: 'باران و آغوش (Sensual Lofi Rain) 🌧️', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
-  { id: 3, title: 'پیانو مخملی شبانه (Deep Velvet Piano) 🍷', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' }
+const DEFAULT_PLAYLIST = [
+  { 
+    id: 'def-1', 
+    title: 'والس عاشقانه شوپن 🎻', 
+    url: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Chopin_-_Nocturne_Op_9_No_2_E_flat_major.ogg',
+    added_by: 'system'
+  },
+  { 
+    id: 'def-2', 
+    title: 'سونات مهتاب بتهوون 🍷', 
+    url: 'https://upload.wikimedia.org/wikipedia/commons/1/15/Moonlight_Sonata_movement_1.ogg',
+    added_by: 'system'
+  }
 ];
 
 export default function App() {
-  // صفحه ورودی هدیه تولد آنا قبل از لاگین
   const [showBirthdayIntro, setShowBirthdayIntro] = useState(true);
   const [giftOpened, setGiftOpened] = useState(false);
 
   const [currentUser, setCurrentUser] = useState(null); // 'taha' | 'ana'
-  const [targetLogin, setTargetLogin] = useState('ana'); // پیش‌فرض روی آنا برای روز تولد
+  const [targetLogin, setTargetLogin] = useState('ana');
   const [enteredPass, setEnteredPass] = useState('');
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
@@ -27,8 +34,13 @@ export default function App() {
   const [newPassInput, setNewPassInput] = useState('');
   const [passChangeSuccess, setPassChangeSuccess] = useState(false);
 
-  const [trackIndex, setTrackIndex] = useState(0);
+  // سیستم پلی‌لیست اشتراکی متصل به Supabase
+  const [sharedSongs, setSharedSongs] = useState([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [newSongTitle, setNewSongTitle] = useState('');
+  const [newSongUrl, setNewSongUrl] = useState('');
+  const [showAddAudioModal, setShowAddAudioModal] = useState(false);
   const audioRef = useRef(null);
 
   const [currentTheme, setCurrentTheme] = useState('velvet');
@@ -89,6 +101,81 @@ export default function App() {
     fetchBucket();
     fetchConfessions();
     fetchDashboardWhispers();
+    fetchSharedSongs();
+  };
+
+  // دریافت آهنگ‌های اشتراکی
+  const fetchSharedSongs = async () => {
+    try {
+      const { data } = await supabase
+        .from('shared_songs')
+        .select('*')
+        .order('id', { ascending: true });
+      if (data) setSharedSongs(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ادغام آهنگ‌های پیش‌فرض و آهنگ‌های اشتراکی دیتابیس
+  const fullPlaylist = [...DEFAULT_PLAYLIST, ...sharedSongs];
+  const activeTrack = fullPlaylist[currentTrackIndex] || fullPlaylist[0];
+
+  // ثبت آهنگ با محدودیت ۵ تا برای هر نفر
+  const handleAddCustomSong = async (e) => {
+    e.preventDefault();
+    if (!newSongUrl.trim()) return;
+
+    // شمارش تعداد آهنگ‌های کاربر فعلی
+    const myCurrentSongsCount = sharedSongs.filter(s => s.added_by === currentUser).length;
+    if (myCurrentSongsCount >= 5) {
+      alert(`سقف مجاز شما پر شده است! هر نفر حداکثر ۵ آهنگ می‌تواند ثبت کند. برای افزودن آهنگ جدید، یکی از قبلی‌های خودت را حذف کن.`);
+      return;
+    }
+
+    const titleToSave = newSongTitle.trim() || `آهنگ عاشقانه ${currentUser === 'taha' ? 'طاها 🐊' : 'آنا 🦓'}`;
+
+    try {
+      const { data, error } = await supabase.from('shared_songs').insert([{
+        title: titleToSave,
+        url: newSongUrl.trim(),
+        added_by: currentUser
+      }]).select();
+
+      if (!error && data) {
+        setSharedSongs([...sharedSongs, data[0]]);
+        setNewSongTitle('');
+        setNewSongUrl('');
+        setShowAddAudioModal(false);
+        spawnParticles('🎶');
+        // انتخاب و پخش خودکار آهنگ جدید
+        const newIndex = fullPlaylist.length;
+        setCurrentTrackIndex(newIndex);
+        if (audioRef.current) {
+          audioRef.current.src = data[0].url;
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // حذف آهنگ (فقط آهنگ‌های خودِ کاربر)
+  const handleDeleteSong = async (songId, addedBy) => {
+    if (addedBy !== currentUser) {
+      alert('شما فقط می‌توانید آهنگ‌هایی که خودتان اضافه کرده‌اید را حذف کنید!');
+      return;
+    }
+
+    try {
+      await supabase.from('shared_songs').delete().eq('id', songId);
+      setSharedSongs(sharedSongs.filter(s => s.id !== songId));
+      setCurrentTrackIndex(0);
+      spawnParticles('🗑️');
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleOpenGift = () => {
@@ -102,7 +189,6 @@ export default function App() {
     }, 2800);
   };
 
-  // سیستم لاگین امن و متصل به Supabase Auth با ایمیل اصلی و مستعار
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError(false);
@@ -115,7 +201,6 @@ export default function App() {
     const localPass = localStorage.getItem(`pass_${targetLogin}`);
 
     try {
-      // تلاش برای احراز هویت رسمی Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: enteredPass.trim()
@@ -125,11 +210,8 @@ export default function App() {
         loginSuccess();
         return;
       }
-    } catch (err) {
-      // ادامه به فال‌بک داخلی
-    }
+    } catch (err) {}
 
-    // فال‌بک با پین‌کدهای ذخیره‌شده
     if ((localPass && localPass === enteredPass.trim()) || enteredPass.trim() === defaultPass) {
       loginSuccess();
     } else {
@@ -142,7 +224,7 @@ export default function App() {
   const loginSuccess = () => {
     setCurrentUser(targetLogin);
     setEnteredPass('');
-    spawnParticles(targetLogin === 'taha' ? '🐊' : '🦓');
+    spawnParticles(targetLogin === 'taha' ? '🦓' : '🐊');
     triggerVibrate([50, 50, 100]);
     startAudio();
   };
@@ -166,7 +248,6 @@ export default function App() {
         passcode: passToSave,
         updated_at: new Date().toISOString()
       });
-      // به‌روزرسانی در صورت امکان در Auth
       await supabase.auth.updateUser({ password: passToSave });
     } catch (err) {
       console.error(err);
@@ -200,9 +281,9 @@ export default function App() {
   };
 
   const changeTrack = (index) => {
-    setTrackIndex(index);
-    if (audioRef.current) {
-      audioRef.current.src = ROMANTIC_PLAYLIST[index].url;
+    setCurrentTrackIndex(index);
+    if (audioRef.current && fullPlaylist[index]) {
+      audioRef.current.src = fullPlaylist[index].url;
       audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
@@ -422,7 +503,6 @@ export default function App() {
 
   const t = themes[currentTheme];
 
-  // ۱. صفحه ویژه تقدیم کادوی تولد ۲۲ مهر
   if (showBirthdayIntro) {
     return (
       <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #38051e 0%, #080004 100%)' }}>
@@ -448,13 +528,7 @@ export default function App() {
             {giftOpened ? '🎂✨🎉' : '🎁💝'}
           </div>
 
-          <span style={{
-            fontSize: '0.85rem',
-            fontWeight: 900,
-            color: '#00f0ff',
-            letterSpacing: '2px',
-            textTransform: 'uppercase'
-          }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#00f0ff', letterSpacing: '2px', textTransform: 'uppercase' }}>
             تولد ۲۱ سالگی پرنسس آنا 👑 | ۲۲ مهر
           </span>
 
@@ -462,34 +536,16 @@ export default function App() {
             تقدیم به ملکه قلب و هوس طاها 💋
           </h1>
 
-          <p style={{
-            color: '#fff',
-            fontSize: '1.05rem',
-            lineHeight: 1.9,
-            fontWeight: 800,
-            margin: '14px 0 20px',
-            textShadow: '0 2px 10px rgba(0,0,0,0.8)'
-          }}>
+          <p style={{ color: '#fff', fontSize: '1.05rem', lineHeight: 1.9, fontWeight: 800, margin: '14px 0 20px', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
             {giftOpened ? (
-              <span style={{ color: '#4ade80' }}>
-                درب‌های بهشت اختصاصی‌مون باز شد... به دنیای خودت خوش اومدی پرنسس من! 🍓
-              </span>
+              <span style={{ color: '#4ade80' }}>درب‌های بهشت اختصاصی‌‌مون باز شد... به دنیای خودت خوش اومدی پرنسس من! 🍓</span>
             ) : (
               "آنای قشنگم، ۲۲ مهر روزیه که خواستنی‌ترین معجزه جهان متولد شد. این وب‌‌سایت کادوی شخصی و همیشگی من برای توئه؛ خلوتگاهی که تمام تپش‌ها، اعتراف‌ها و بازی‌هاش فقط برای تسلیم شدن در برابر تو ساخته شده... روی جعبه کادو بزن تا بازش کنی! 🗝️❤️"
             )}
           </p>
 
           {!giftOpened && (
-            <button
-              onClick={handleOpenGift}
-              style={{
-                ...styles.gateBtn,
-                background: 'linear-gradient(135deg, #ff0055, #ff4d88)',
-                boxShadow: '0 0 35px rgba(255, 0, 85, 0.6)',
-                fontSize: '1.1rem',
-                padding: '16px'
-              }}
-            >
+            <button onClick={handleOpenGift} style={{ ...styles.gateBtn, background: 'linear-gradient(135deg, #ff0055, #ff4d88)', boxShadow: '0 0 35px rgba(255, 0, 85, 0.6)', fontSize: '1.1rem', padding: '16px' }}>
               باز کردن هدیه تولد و ورود به خلوتگاه 🎁✨
             </button>
           )}
@@ -498,7 +554,6 @@ export default function App() {
     );
   }
 
-  // ۲. صفحه لاگین
   if (!currentUser) {
     return (
       <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #2e0417 0%, #0a0105 100%)' }}>
@@ -556,14 +611,7 @@ export default function App() {
               onChange={(e) => setEnteredPass(e.target.value)}
               style={{ ...styles.gateInput, background: '#12020a', borderColor: '#ff0055', color: '#ff4d88' }}
             />
-            <button
-              type="submit"
-              style={{
-                ...styles.gateBtn,
-                background: 'linear-gradient(135deg, #ff0055, #ff4d88)',
-                boxShadow: '0 0 25px rgba(255, 0, 85, 0.5)'
-              }}
-            >
+            <button type="submit" style={{ ...styles.gateBtn, background: 'linear-gradient(135deg, #ff0055, #ff4d88)', boxShadow: '0 0 25px rgba(255, 0, 85, 0.5)' }}>
               گشودن درهای کهکشان 🗝️🔥
             </button>
           </form>
@@ -589,7 +637,7 @@ export default function App() {
         ref={audioRef}
         loop
         preload="auto"
-        src={ROMANTIC_PLAYLIST[trackIndex].url}
+        src={activeTrack ? activeTrack.url : DEFAULT_PLAYLIST[0].url}
       />
 
       {touchWaves.map(w => (
@@ -628,38 +676,123 @@ export default function App() {
         </span>
       ))}
 
-      {/* موزیک پلیر پیشرفته با ترک جدید */}
+      {/* موزیک پلیر پیشرفته + سیستم دیتابیسی ثبت و حذف آهنگ با نام فرستنده */}
       <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary, boxShadow: t.glow }}>
         <button onClick={toggleMusic} style={{ ...styles.playCircle, background: t.primary }}>
           {isPlaying ? '⏸' : '▶'}
         </button>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>
-            {ROMANTIC_PLAYLIST[trackIndex].title}
-          </span>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {ROMANTIC_PLAYLIST.map((track, i) => (
-              <button
-                key={track.id}
-                onClick={(e) => { e.stopPropagation(); changeTrack(i); }}
-                style={{
-                  background: trackIndex === i ? t.primary : 'rgba(255,255,255,0.1)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '2px 7px',
-                  fontSize: '0.68rem',
-                  cursor: 'pointer'
-                }}
-              >
-                ترک {i + 1}
-              </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxWidth: '320px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {activeTrack ? activeTrack.title : 'موزیک عاشقانه'}
+            </span>
+            {activeTrack && activeTrack.added_by !== 'system' && (
+              <span style={{
+                fontSize: '0.68rem',
+                padding: '2px 6px',
+                borderRadius: '8px',
+                background: activeTrack.added_by === 'taha' ? 'rgba(0,240,255,0.2)' : 'rgba(255,0,127,0.2)',
+                color: activeTrack.added_by === 'taha' ? '#00f0ff' : '#ff758c',
+                fontWeight: 900
+              }}>
+                توسط: {activeTrack.added_by === 'taha' ? 'طاها 🐊' : 'آنا 🦓'}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {fullPlaylist.map((track, i) => (
+              <div key={track.id} style={{ display: 'flex', alignItems: 'center', background: currentTrackIndex === i ? t.primary : 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '1px 5px' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); changeTrack(i); }}
+                  style={{
+                    background: 'none',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '0.68rem',
+                    cursor: 'pointer',
+                    padding: '2px 4px'
+                  }}
+                >
+                  {i + 1}
+                </button>
+                {/* دکمه حذف فقط اگر آهنگ متعلق به کاربر فعلی باشد */}
+                {track.added_by === currentUser && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteSong(track.id, track.added_by); }}
+                    style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '0.7rem', padding: '0 2px' }}
+                    title="حذف این آهنگ"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
+
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAddAudioModal(!showAddAudioModal); }}
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '2px 8px',
+                fontSize: '0.68rem',
+                cursor: 'pointer',
+                fontWeight: 800
+              }}
+            >
+              ➕ افزودن (حداکثر ۵)
+            </button>
           </div>
         </div>
       </div>
 
-      {/* هدر بالایی */}
+      {/* پنجره ثبت آهنگ با لینک مستقیم در دیتابیس */}
+      {showAddAudioModal && (
+        <div style={{
+          position: 'fixed',
+          bottom: '90px',
+          left: '20px',
+          background: 'rgba(18, 2, 10, 0.96)',
+          border: `2px solid ${t.primary}`,
+          borderRadius: '18px',
+          padding: '14px',
+          zIndex: 9999,
+          maxWidth: '320px',
+          boxShadow: t.glow
+        }}>
+          <span style={{ color: '#00f0ff', fontSize: '0.8rem', fontWeight: 900 }}>
+            اشتراک‌گذاری موزیک جدید با عشقت ({sharedSongs.filter(s => s.added_by === currentUser).length}/5):
+          </span>
+          <form onSubmit={handleAddCustomSong} style={{ marginTop: '8px' }}>
+            <input
+              type="text"
+              placeholder="نام یا توضیح آهنگ..."
+              value={newSongTitle}
+              onChange={e => setNewSongTitle(e.target.value)}
+              style={{ ...styles.inputField, padding: '7px 10px', fontSize: '0.8rem', marginBottom: '6px' }}
+            />
+            <input
+              type="text"
+              placeholder="لینک مستقیم mp3 یا ogg..."
+              value={newSongUrl}
+              onChange={e => setNewSongUrl(e.target.value)}
+              style={{ ...styles.inputField, padding: '7px 10px', fontSize: '0.8rem' }}
+            />
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+              <button type="submit" style={{ ...styles.actionBtn, padding: '8px', fontSize: '0.78rem', background: t.primary, flex: 2 }}>
+                ارسال به دیتابیس 🚀
+              </button>
+              <button type="button" onClick={() => setShowAddAudioModal(false)} style={{ ...styles.actionBtn, padding: '8px', fontSize: '0.78rem', background: '#333', flex: 1 }}>
+                بستن
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* هدر بالایی با تنظیم دقیق بارش گورخر برای طاها و کروکودیل برای آنا */}
       <header style={{
         ...styles.navbar,
         borderColor: t.border,
@@ -696,9 +829,13 @@ export default function App() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => spawnParticles(currentUser === 'taha' ? '🐊' : '🦓')} style={styles.badgeBtn}>
-            {currentUser === 'taha' ? '🐊 باران تمساح' : '🎂 باران تولد'}
+          <button
+            onClick={() => spawnParticles(currentUser === 'taha' ? '🦓' : '🐊')}
+            style={styles.badgeBtn}
+          >
+            {currentUser === 'taha' ? '🦓 باران گورخر' : '🐊 باران کروکودیل'}
           </button>
+
           <button
             onClick={handleLogout}
             style={{ ...styles.badgeBtn, background: '#ef4444', color: '#fff', border: 'none' }}
@@ -781,7 +918,7 @@ export default function App() {
                 <span className="interactive-animal" onClick={() => spawnParticles('🦓')}>🦓</span>
               </div>
               <p style={{ color: t.primary, fontWeight: 800, marginTop: '10px' }}>
-                روی هر کدوم بزنی انرژی و بارون تولد می‌باره! 🌟
+                روی هر کدوم بزنی انرژی و بارون می‌باره! 🌟
               </p>
             </div>
 
@@ -916,7 +1053,7 @@ export default function App() {
                 rows="4"
                 placeholder={
                   confessionType === 'apology' 
-                    ? `بنویس کجا اشتباه کردی و چقدر دلت می‌خواد دل ${currentUser === 'taha' ? 'آنا پرنسست' : 'طاها کروکودیلت'} رو به دست بیاری...`
+                    ? `بنویس کجا اشتباه کردی و چقدر دلت می‌‌خواد دل ${currentUser === 'taha' ? 'آنا پرنسست' : 'طاها کروکودیلت'} رو به دست بیاری...`
                     : 'حرف دل، خواسته یا اعترافت رو بنویس تا طرف مقابل ببینه...'
                 }
                 value={newConfession}
@@ -1275,259 +1412,47 @@ export default function App() {
       </main>
 
       <style>{`
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(40px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInLeft {
-          from { opacity: 0; transform: translateX(-40px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        .slide-in-right {
-          animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .slide-in-left {
-          animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes floatUp {
-          0% { transform: translateY(0) scale(0.8); opacity: 1; }
-          100% { transform: translateY(-100vh) scale(1.4); opacity: 0; }
-        }
-        @keyframes touchRipple {
-          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
-          100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.06); }
-        }
-        .interactive-animal {
-          cursor: pointer;
-          transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .interactive-animal:hover {
-          transform: scale(1.35) rotate(10deg);
-        }
-        .polaroid-frame {
-          transition: transform 0.35s ease, box-shadow 0.35s ease;
-        }
-        .polaroid-frame:hover {
-          transform: rotate(0deg) scale(1.08) !important;
-          z-index: 10;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
-        }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
+        .slide-in-right { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .slide-in-left { animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 1; } 100% { transform: translateY(-100vh) scale(1.4); opacity: 0; } }
+        @keyframes touchRipple { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(7); opacity: 0; } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        .interactive-animal { cursor: pointer; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .interactive-animal:hover { transform: scale(1.35) rotate(10deg); }
+        .polaroid-frame { transition: transform 0.35s ease, box-shadow 0.35s ease; }
+        .polaroid-frame:hover { transform: rotate(0deg) scale(1.08) !important; z-index: 10; box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important; }
       `}</style>
     </div>
   );
 }
 
 const styles = {
-  gateWrapper: {
-    height: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    direction: 'rtl',
-    padding: '16px'
-  },
-  gateCard: {
-    backdropFilter: 'blur(20px)',
-    border: '3px solid',
-    borderRadius: '32px',
-    padding: '36px 26px',
-    textAlign: 'center',
-    maxWidth: '420px',
-    width: '100%'
-  },
-  gateInput: {
-    width: '100%',
-    padding: '14px',
-    borderRadius: '16px',
-    border: '2px solid',
-    outline: 'none',
-    textAlign: 'center',
-    fontSize: '1rem',
-    boxSizing: 'border-box'
-  },
-  gateBtn: {
-    width: '100%',
-    marginTop: '14px',
-    padding: '14px',
-    borderRadius: '16px',
-    border: 'none',
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: '1.05rem',
-    cursor: 'pointer'
-  },
-  appContainer: {
-    minHeight: '100vh',
-    direction: 'rtl',
-    paddingBottom: '80px',
-    transition: 'background 0.5s ease',
-    overflowX: 'hidden'
-  },
-  floatingAudioPlayer: {
-    position: 'fixed',
-    bottom: '20px',
-    left: '20px',
-    background: 'rgba(15, 2, 8, 0.94)',
-    backdropFilter: 'blur(12px)',
-    padding: '8px 18px',
-    borderRadius: '30px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    zIndex: 9998,
-    border: '2px solid'
-  },
-  playCircle: {
-    width: '38px',
-    height: '38px',
-    borderRadius: '50%',
-    border: 'none',
-    color: '#fff',
-    fontSize: '1.1rem',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  navbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 24px',
-    borderBottom: '2px solid',
-    backdropFilter: 'blur(12px)'
-  },
-  badgeBtn: {
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,0,85,0.4)',
-    color: '#fff',
-    borderRadius: '18px',
-    padding: '6px 12px',
-    fontSize: '0.8rem',
-    fontWeight: 800,
-    cursor: 'pointer'
-  },
-  themeSelectorBar: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '10px',
-    padding: '10px 16px',
-    background: 'rgba(0, 0, 0, 0.25)',
-    flexWrap: 'wrap'
-  },
-  themeBtn: {
-    padding: '8px 16px',
-    borderRadius: '20px',
-    fontWeight: 800,
-    fontSize: '0.85rem',
-    cursor: 'pointer'
-  },
-  navTabs: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '10px',
-    padding: '16px 10px',
-    flexWrap: 'wrap'
-  },
-  tabButton: {
-    padding: '10px 18px',
-    borderRadius: '25px',
-    fontWeight: 800,
-    fontSize: '0.9rem',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease'
-  },
-  mainContent: {
-    maxWidth: '780px',
-    margin: '10px auto',
-    padding: '0 16px',
-    position: 'relative'
-  },
-  card: {
-    borderRadius: '30px',
-    padding: '28px',
-    border: '3px solid',
-    backdropFilter: 'blur(16px)'
-  },
-  cardTitle: {
-    textAlign: 'center',
-    fontWeight: 900,
-    fontSize: '1.4rem',
-    marginBottom: '22px'
-  },
-  counterGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px'
-  },
-  counterBox: {
-    border: '3px solid',
-    borderRadius: '22px',
-    padding: '16px 4px',
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    boxShadow: '0 6px 15px rgba(0,0,0,0.3)'
-  },
-  counterNum: {
-    fontSize: '2.4rem',
-    fontWeight: 900,
-    lineHeight: 1.1
-  },
-  counterLabel: {
-    fontSize: '0.9rem',
-    fontWeight: 800,
-    marginTop: '6px'
-  },
-  inputField: {
-    width: '100%',
-    padding: '12px 16px',
-    borderRadius: '16px',
-    border: '2px solid rgba(255,0,85,0.4)',
-    background: 'rgba(0,0,0,0.35)',
-    color: '#fff',
-    outline: 'none',
-    fontSize: '0.95rem',
-    boxSizing: 'border-box'
-  },
-  actionBtn: {
-    width: '100%',
-    padding: '14px',
-    borderRadius: '18px',
-    border: 'none',
-    color: '#fff',
-    fontWeight: 800,
-    fontSize: '1rem',
-    cursor: 'pointer',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.25)'
-  },
-  polaroidContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '24px',
-    padding: '15px'
-  },
-  tape: {
-    width: '60px',
-    height: '18px',
-    background: 'rgba(255, 235, 179, 0.7)',
-    margin: '-16px auto 10px',
-    borderRadius: '2px'
-  },
-  polaroidImg: {
-    width: '100%',
-    height: '170px',
-    objectFit: 'cover',
-    borderRadius: '4px'
-  }
+  gateWrapper: { height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', direction: 'rtl', padding: '16px' },
+  gateCard: { backdropFilter: 'blur(20px)', border: '3px solid', borderRadius: '32px', padding: '36px 26px', textAlign: 'center', maxWidth: '420px', width: '100%' },
+  gateInput: { width: '100%', padding: '14px', borderRadius: '16px', border: '2px solid', outline: 'none', textAlign: 'center', fontSize: '1rem', boxSizing: 'border-box' },
+  gateBtn: { width: '100%', marginTop: '14px', padding: '14px', borderRadius: '16px', border: 'none', color: '#fff', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer' },
+  appContainer: { minHeight: '100vh', direction: 'rtl', paddingBottom: '80px', transition: 'background 0.5s ease', overflowX: 'hidden' },
+  floatingAudioPlayer: { position: 'fixed', bottom: '20px', left: '20px', background: 'rgba(15, 2, 8, 0.94)', backdropFilter: 'blur(12px)', padding: '8px 18px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 9998, border: '2px solid' },
+  playCircle: { width: '38px', height: '38px', borderRadius: '50%', border: 'none', color: '#fff', fontSize: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', borderBottom: '2px solid', backdropFilter: 'blur(12px)' },
+  badgeBtn: { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,0,85,0.4)', color: '#fff', borderRadius: '18px', padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' },
+  themeSelectorBar: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', padding: '10px 16px', background: 'rgba(0, 0, 0, 0.25)', flexWrap: 'wrap' },
+  themeBtn: { padding: '8px 16px', borderRadius: '20px', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' },
+  navTabs: { display: 'flex', justifyContent: 'center', gap: '10px', padding: '16px 10px', flexWrap: 'wrap' },
+  tabButton: { padding: '10px 18px', borderRadius: '25px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.3s ease' },
+  mainContent: { maxWidth: '780px', margin: '10px auto', padding: '0 16px', position: 'relative' },
+  card: { borderRadius: '30px', padding: '28px', border: '3px solid', backdropFilter: 'blur(16px)' },
+  cardTitle: { textAlign: 'center', fontWeight: 900, fontSize: '1.4rem', marginBottom: '22px' },
+  counterGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' },
+  counterBox: { border: '3px solid', borderRadius: '22px', padding: '16px 4px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 6px 15px rgba(0,0,0,0.3)' },
+  counterNum: { fontSize: '2.4rem', fontWeight: 900, lineHeight: 1.1 },
+  counterLabel: { fontSize: '0.9rem', fontWeight: 800, marginTop: '6px' },
+  inputField: { width: '100%', padding: '12px 16px', borderRadius: '16px', border: '2px solid rgba(255,0,85,0.4)', background: 'rgba(0,0,0,0.35)', color: '#fff', outline: 'none', fontSize: '0.95rem', boxSizing: 'border-box' },
+  actionBtn: { width: '100%', padding: '14px', borderRadius: '18px', border: 'none', color: '#fff', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 18px rgba(0,0,0,0.25)' },
+  polaroidContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '24px', padding: '15px' },
+  tape: { width: '60px', height: '18px', background: 'rgba(255, 235, 179, 0.7)', margin: '-16px auto 10px', borderRadius: '2px' },
+  polaroidImg: { width: '100%', height: '170px', objectFit: 'cover', borderRadius: '4px' }
 };
