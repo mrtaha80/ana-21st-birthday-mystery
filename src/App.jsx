@@ -6,6 +6,13 @@ const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// پلی‌لیست صوتی بدون فیلتر و رمانتیک
+const ROMANTIC_PLAYLIST = [
+  { id: 1, title: 'نیمه‌شب مخملی (Midnight Velvet) 🍷', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+  { id: 2, title: 'باران و آغوش (Sensual Lofi Rain) 🌧️', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
+  { id: 3, title: 'والس فرانسوی (Romantic French Waltz) 🎶', url: 'https://cdn.freesound.org/previews/530/530415_11861866-lq.mp3' }
+];
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null); // 'taha' | 'ana'
   const [targetLogin, setTargetLogin] = useState('taha');
@@ -13,15 +20,16 @@ export default function App() {
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
 
-  // تغییر رمز قطعی
+  // تغییر رمز قطعی (حذف همیشگی رمز قبلی)
   const [newPassInput, setNewPassInput] = useState('');
   const [passChangeSuccess, setPassChangeSuccess] = useState(false);
 
-  // سیستم موزیک پلیر پایدار
+  // سیستم موزیک چندترکه پایدار
+  const [trackIndex, setTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // تم‌های لوکس و جذاب
+  // تم‌های لوکس، اروتیک و شبانه
   const [currentTheme, setCurrentTheme] = useState('velvet');
 
   // داده‌های سوپابیس
@@ -33,20 +41,22 @@ export default function App() {
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
 
-  // پل دلتنگی، معذرت‌خواهی و اعتراف زنده دوطرفه
+  // پل دلتنگی، معذرت‌خواهی و تعیین تنبیه متقابل
   const [confessions, setConfessions] = useState([]);
   const [newConfession, setNewConfession] = useState('');
   const [confessionType, setConfessionType] = useState('apology');
+  const [penaltyInputs, setPenaltyInputs] = useState({});
 
-  // رادار هیت و صمیمیت
+  // رادار هیت و صمیمیت لمسی
   const [passionMeter, setPassionMeter] = useState(40);
   const [intimateAction, setIntimateAction] = useState(null);
 
-  // ذرات معلق
+  // ذرات معلق و امواج لمسی
   const [particles, setParticles] = useState([]);
+  const [touchWaves, setTouchWaves] = useState([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // زمان‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
+  // ثانیه‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -70,7 +80,7 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       fetchAllData();
-      const timer = setInterval(fetchAllData, 6000);
+      const timer = setInterval(fetchAllData, 5000);
       return () => clearInterval(timer);
     }
   }, [currentUser]);
@@ -159,6 +169,7 @@ export default function App() {
     if (navigator.vibrate) navigator.vibrate(pattern);
   };
 
+  // کنترل هوشمند صوتی
   const startAudio = () => {
     if (audioRef.current) {
       audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
@@ -175,6 +186,28 @@ export default function App() {
     }
   };
 
+  const changeTrack = (index) => {
+    setTrackIndex(index);
+    if (audioRef.current) {
+      audioRef.current.src = ROMANTIC_PLAYLIST[index].url;
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  };
+
+  // افکت موج نوری هنگام لمس هر کجای صفحه
+  const handleGlobalTouch = (e) => {
+    const x = e.clientX || (e.touches && e.touches[0]?.clientX);
+    const y = e.clientY || (e.touches && e.touches[0]?.clientY);
+    if (x && y) {
+      const newWave = { id: Date.now(), x, y };
+      setTouchWaves(prev => [...prev.slice(-3), newWave]);
+      setTimeout(() => {
+        setTouchWaves(prev => prev.filter(w => w.id !== newWave.id));
+      }, 800);
+    }
+  };
+
+  // یادداشت‌ها
   const fetchNotes = async () => {
     const { data } = await supabase.from('shared_notes').select('*').order('id', { ascending: false }).limit(30);
     if (data) setNotes(data);
@@ -192,6 +225,7 @@ export default function App() {
     }
   };
 
+  // آلبوم تصاویر
   const fetchPhotos = async () => {
     const { data } = await supabase.from('shared_photos').select('*').order('id', { ascending: false });
     if (data) setPhotos(data);
@@ -209,6 +243,7 @@ export default function App() {
     }
   };
 
+  // لیست آرزوها
   const fetchBucket = async () => {
     const { data } = await supabase.from('bucket_list').select('*').order('id', { ascending: true });
     if (data) setBucketList(data);
@@ -231,7 +266,7 @@ export default function App() {
     spawnParticles('🎉');
   };
 
-  // همگام‌سازی زنده عذرخواهی و اعترافات
+  // سیستم متصل عذرخواهی و تعیین تنبیه توسط طرف مقابل
   const fetchConfessions = async () => {
     try {
       const { data } = await supabase.from('heart_confessions').select('*').order('id', { ascending: false });
@@ -247,7 +282,7 @@ export default function App() {
     const authorTag = currentUser === 'taha' ? 'طاها 🐊' : 'آنا 🦓';
     try {
       const { data } = await supabase.from('heart_confessions').insert([
-        { sender: authorTag, category: confessionType, message: newConfession.trim() }
+        { sender: authorTag, category: confessionType, message: newConfession.trim(), forgiven: false }
       ]).select();
       if (data) {
         setConfessions([data[0], ...confessions]);
@@ -255,6 +290,26 @@ export default function App() {
         spawnParticles('🕊️');
         triggerVibrate([50, 100]);
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // تعیین جریمه برای عذرخواهی طرف مقابل
+  const handleAssignPenaltyToConfession = async (id) => {
+    const text = penaltyInputs[id];
+    if (!text || !text.trim()) return;
+
+    try {
+      // الصاق جریمه به پیام در دیتابیس
+      await supabase.from('heart_confessions').update({
+        message: `${confessions.find(c => c.id === id).message} \n\n[⚡ جریمه تعیین‌شده: ${text.trim()}]`
+      }).eq('id', id);
+
+      setPenaltyInputs(prev => ({ ...prev, [id]: '' }));
+      fetchConfessions();
+      spawnParticles('🔥');
+      triggerVibrate([60, 40, 80]);
     } catch (err) {
       console.error(err);
     }
@@ -301,8 +356,8 @@ export default function App() {
   };
 
   const quotes = [
-    "طاها کروکودیل میگه: تمام خطوط تن و لمس داغ بدنت، آرامش‌بخش‌ترین حس شب‌های منه پرنسس من 🐊🔥",
-    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر گردنت هیچ شوری نداره 🦓✨",
+    "طاها کروکودیل میگه: تمام خطوط تن و لمس داغ بدنت، مقدس‌ترین خلوتگاه شب‌های منه پرنسس من 🐊🔥",
+    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر گردنت هیچ جنونی نداره 🦓✨",
     "کروکودیل عاشق در کمینه تا صید دلبرش رو در آغوشش قفل کنه و به اوج ببره 🐊💋",
     "از ۸ آگوست ۲۰۲۶ تا همیشه، تمام نبض و عطش و روح من برای توئه 🍓",
     "تو جذاب‌ترین، آرامش‌بخش‌ترین و خواستنی‌ترین پرنسس تاریخی 🌸🎀"
@@ -405,7 +460,7 @@ export default function App() {
                 boxShadow: '0 0 25px rgba(255, 0, 85, 0.5)'
               }}
             >
-              گشودن درهای کهکشان 🗝🔥
+              گشودن درهای کهکشان 🗝️🔥
             </button>
           </form>
 
@@ -422,14 +477,35 @@ export default function App() {
   const latestHeroPhoto = photos.length > 0 ? photos[0].image_url : null;
 
   return (
-    <div style={{ ...styles.appContainer, background: t.bg }}>
+    <div style={{ ...styles.appContainer, background: t.bg }} onClick={handleGlobalTouch}>
       <audio
         ref={audioRef}
         loop
         preload="auto"
-        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+        src={ROMANTIC_PLAYLIST[trackIndex].url}
       />
 
+      {/* امواج نوری در محل لمس */}
+      {touchWaves.map(w => (
+        <span
+          key={w.id}
+          style={{
+            position: 'fixed',
+            left: `${w.x}px`,
+            top: `${w.y}px`,
+            width: '18px',
+            height: '18px',
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'radial-gradient(circle, rgba(255,0,85,0.8) 0%, transparent 75%)',
+            animation: 'touchRipple 0.8s ease-out forwards',
+            pointerEvents: 'none',
+            zIndex: 9996
+          }}
+        />
+      ))}
+
+      {/* ذرات شناور رمانتیک */}
       {particles.map(p => (
         <span
           key={p.id}
@@ -447,20 +523,43 @@ export default function App() {
         </span>
       ))}
 
-      {/* موزیک پلیر پایدار */}
+      {/* موزیک پلیر پیشرفته با قابلیت تعویض آهنگ */}
       <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary, boxShadow: t.glow }}>
         <button onClick={toggleMusic} style={{ ...styles.playCircle, background: t.primary }}>
           {isPlaying ? '⏸' : '▶'}
         </button>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff' }}>
-            {isPlaying ? 'موسیقی شبانه در حال نواختن... 🎶' : 'پخش موسیقی شبانه 🎵'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#fff' }}>
+            {ROMANTIC_PLAYLIST[trackIndex].title}
           </span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {ROMANTIC_PLAYLIST.map((track, i) => (
+              <button
+                key={track.id}
+                onClick={(e) => { e.stopPropagation(); changeTrack(i); }}
+                style={{
+                  background: trackIndex === i ? t.primary : 'rgba(255,255,255,0.1)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '2px 7px',
+                  fontSize: '0.68rem',
+                  cursor: 'pointer'
+                }}
+              >
+                ترک {i + 1}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* هدر بالایی */}
-      <header style={{ ...styles.navbar, borderColor: t.border, background: 'rgba(18, 2, 10, 0.88)' }}>
+      {/* هدر بالایی دارک-اروتیک */}
+      <header style={{
+        ...styles.navbar,
+        borderColor: t.border,
+        background: 'rgba(18, 2, 10, 0.88)'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {latestHeroPhoto && (
             <div style={{ position: 'relative' }}>
@@ -486,7 +585,7 @@ export default function App() {
               {currentUser === 'taha' ? 'طاها (کروکودیل مقتدر 🐊)' : 'پرنسس آنا (گورخر نانازی 🦓)'}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
-              خلوتگاه خصوصی و متصل به فضای ابری
+              خلوتگاه خصوصی و اختصاصی دو‌نفره
             </div>
           </div>
         </div>
@@ -504,12 +603,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* تغییر اتمسفر لوکس */}
+      {/* نوار تغییر اتمسفر لوکس و سکسی (فعال برای جفتتون) */}
       <div style={styles.themeSelectorBar}>
         <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>اتمسفر شبانه:</span>
-        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب</button>
-        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک نئون</button>
-        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی شهوانی</button>
+        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب (Dark Romance)</button>
+        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک شهوانی (Neon Noir)</button>
+        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی وحشی (Pink Desire)</button>
       </div>
 
       {/* نوار تب‌ها */}
@@ -517,10 +616,11 @@ export default function App() {
         {[
           { id: 'hub', label: 'داشبورد عاشقی ⏳' },
           { id: 'sexy', label: 'بازی کمین و سلفی 🔥' },
-          { id: 'heart', label: 'پل دلتنگی و شکستن غرور 🕊️' },
+          { id: 'heart', label: 'پل دلتنگی و جریمه‌ها ⚡🕊️' },
           { id: 'heat', label: 'رادار صمیمیت لمسی ⚡' },
           { id: 'gallery', label: 'آلبوم پولاروید زنده 📸' },
           { id: 'notes', label: 'پچ‌پچ‌های مخفی 💌' },
+          { id: 'bucket', label: 'دفترچه آرزوها 🌟' },
           { id: 'vault', label: 'مدیریت رمز اختصاصی 🔒' }
         ].map(item => (
           <button
@@ -630,31 +730,31 @@ export default function App() {
           </div>
         )}
 
-        {/* ۲. بازی اختصاصی متصل به دیتابیس زنده دوطرفه */}
+        {/* ۲. بازی اختصاصی با اتصال اتوماتیک هویت بازیکن */}
         {activeTab === 'sexy' && (
           <div key="sexy" className="slide-in-left">
             <SexyGame theme={t} onParticleTrigger={spawnParticles} currentUser={currentUser} />
           </div>
         )}
 
-        {/* ۳. پل دلتنگی و شکستن غرور کاملاً زنده برای دو طرف */}
+        {/* ۳. پل دلتنگی، معذرت‌خواهی و تعیین تنبیه متقابل زنده */}
         {activeTab === 'heart' && (
           <div key="heart" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <div style={{ textAlign: 'center', marginBottom: '22px' }}>
-              <span style={{ fontSize: '3rem' }}>🕊️🤍🫂</span>
+              <span style={{ fontSize: '3rem' }}>🕊️⚡🫂</span>
               <h2 style={{ ...styles.cardTitle, color: t.primary, margin: '8px 0 4px' }}>
-                پل اعتراف، عذرخواهی و شکستن غرور
+                پل اعتراف، عذرخواهی و تعیین تنبیه متقابل
               </h2>
               <p style={{ color: '#ddd', fontSize: '0.88rem', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto' }}>
-                هر پیامی که اینجا بنویسی مستقیماً در صفحه طرف مقابل ظاهر می‌شود. اگر دلت گرفته یا پشیمانی، با شجاعت بنویس تا با آغوش حل شود...
+                اگر دلت گرفته یا اشتباهی کردی بنویس؛ طرف مقابل برای این عذرخواهی یک جریمه/تنبیه تعیین می‌کند و پس از انجام، بخشش نهایی ثبت می‌شود!
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center' }}>
               {[
-                { id: 'apology', label: 'معذرت‌خواهی از ته‌دل 🥺' },
-                { id: 'secret', label: 'حقیقت پنهان در دلم 🤍' },
-                { id: 'appreciation', label: 'قدردانی بدون غرور 🌸' }
+                { id: 'apology', label: 'معذرت‌خواهی 🥺' },
+                { id: 'secret', label: 'حقیقت دل 🤍' },
+                { id: 'dare_request', label: 'خواسته و تنبیه 🔥' }
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -682,7 +782,7 @@ export default function App() {
                 placeholder={
                   confessionType === 'apology' 
                     ? `بنویس کجا اشتباه کردی و چقدر دلت می‌خواد دل ${currentUser === 'taha' ? 'آنا پرنسست' : 'طاها کروکودیلت'} رو به دست بیاری...`
-                    : 'حرفی که تا حالا نگفتی یا حقیقت قشنگ توی دلت رو بنویس...'
+                    : 'حرف دل، خواسته یا اعترافت رو بنویس تا طرف مقابل ببینه...'
                 }
                 value={newConfession}
                 onChange={e => setNewConfession(e.target.value)}
@@ -702,7 +802,7 @@ export default function App() {
                   background: 'linear-gradient(135deg, #e11d48, #be123c)'
                 }}
               >
-                گذاشتن این حقیقت در صندوقچه قلبمون 🕊️✨
+                ارسال به خلوتگاه طرف مقابل 🕊️✨
               </button>
             </form>
 
@@ -710,65 +810,92 @@ export default function App() {
               {confessions.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>هنوز پیامی نوشته نشده است 🤍</p>
               ) : (
-                confessions.map(item => (
-                  <div
-                    key={item.id}
-                    style={{
-                      background: 'rgba(20, 2, 10, 0.9)',
-                      border: `2px solid ${item.forgiven ? '#10b981' : t.primary}`,
-                      borderRadius: '20px',
-                      padding: '16px 20px',
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 900, color: t.primary, fontSize: '0.9rem' }}>
-                        از طرف: {item.sender}
-                      </span>
-                      <span style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        background: item.category === 'apology' ? '#ffe4e6' : '#f0fdf4',
-                        color: item.category === 'apology' ? '#e11d48' : '#15803d'
-                      }}>
-                        {item.category === 'apology' ? 'معذرت‌خواهی 🥺' : (item.category === 'secret' ? 'حقیقت دل 🤍' : 'قدردانی 🌸')}
-                      </span>
-                    </div>
-
-                    <p style={{ color: '#fff', fontSize: '0.98rem', lineHeight: 1.8, margin: '6px 0' }}>
-                      {item.message}
-                    </p>
-
-                    <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      {item.forgiven ? (
-                        <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
-                          ✅ بخشیده شد و با بغل حل شد! 🫂💚
+                confessions.map(item => {
+                  const isMine = item.sender.includes(currentUser === 'taha' ? 'طاها' : 'آنا');
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: 'rgba(20, 2, 10, 0.9)',
+                        border: `2px solid ${item.forgiven ? '#10b981' : t.primary}`,
+                        borderRadius: '20px',
+                        padding: '16px 20px',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: 900, color: t.primary, fontSize: '0.9rem' }}>
+                          از طرف: {item.sender}
                         </span>
-                      ) : (
-                        <button
-                          onClick={() => forgiveConfession(item.id)}
-                          style={{
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                            border: 'none',
-                            color: '#fff',
-                            padding: '6px 14px',
-                            borderRadius: '14px',
-                            fontWeight: 800,
-                            fontSize: '0.82rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          بخشیدمت قشنگم، بغلم کن 🫂❤️
-                        </button>
+                        <span style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          background: item.category === 'apology' ? '#ffe4e6' : '#f0fdf4',
+                          color: item.category === 'apology' ? '#e11d48' : '#15803d'
+                        }}>
+                          {item.category === 'apology' ? 'معذرت‌خواهی 🥺' : 'حقیقت دل 🤍'}
+                        </span>
+                      </div>
+
+                      <p style={{ color: '#fff', fontSize: '0.98rem', lineHeight: 1.8, margin: '6px 0', whiteSpace: 'pre-line' }}>
+                        {item.message}
+                      </p>
+
+                      {/* بخش تعیین تنبیه برای پیام طرف مقابل */}
+                      {!isMine && !item.message.includes('جریمه تعیین‌شده') && !item.forgiven && (
+                        <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,0,85,0.1)', borderRadius: '14px', border: '1px dashed #ff0055' }}>
+                          <span style={{ color: '#00f0ff', fontSize: '0.82rem', fontWeight: 800 }}>
+                            برای این پیام یک جریمه/تنبیه تعیین کن:
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                            <input
+                              type="text"
+                              placeholder="مثلاً: ۵ دقیقه ماساژ یا اجرای یک فانتزی..."
+                              value={penaltyInputs[item.id] || ''}
+                              onChange={e => setPenaltyInputs({ ...penaltyInputs, [item.id]: e.target.value })}
+                              style={{ ...styles.inputField, padding: '8px 12px', fontSize: '0.85rem' }}
+                            />
+                            <button
+                              onClick={() => handleAssignPenaltyToConfession(item.id)}
+                              style={{ ...styles.actionBtn, width: 'auto', padding: '8px 14px', background: t.primary, fontSize: '0.82rem' }}
+                            >
+                              ثبت جریمه ⚡
+                            </button>
+                          </div>
+                        </div>
                       )}
-                      <span style={{ fontSize: '0.72rem', color: '#888' }}>
-                        {new Date(item.created_at).toLocaleDateString('fa-IR')}
-                      </span>
+
+                      <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {item.forgiven ? (
+                          <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
+                            ✅ بخشیده شد و با آغوش حل شد! 🫂💚
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => forgiveConfession(item.id)}
+                            style={{
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              border: 'none',
+                              color: '#fff',
+                              padding: '6px 14px',
+                              borderRadius: '14px',
+                              fontWeight: 800,
+                              fontSize: '0.82rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            بخشیدمت قشنگم، بغلم کن 🫂❤️
+                          </button>
+                        )}
+                        <span style={{ fontSize: '0.72rem', color: '#888' }}>
+                          {new Date(item.created_at).toLocaleDateString('fa-IR')}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -846,7 +973,7 @@ export default function App() {
             <form onSubmit={addPhoto} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
               <input
                 type="text"
-                placeholder="لینک مستقیم تصویر دونفره‌‌مون..."
+                placeholder="لینک مستقیم تصویر دونفره‌‌‌‌مون..."
                 value={newPhotoUrl}
                 onChange={e => setNewPhotoUrl(e.target.value)}
                 style={styles.inputField}
@@ -934,7 +1061,51 @@ export default function App() {
           </div>
         )}
 
-        {/* ۷. مدیریت پین‌کد محرمانه */}
+        {/* ۷. دفترچه آرزوها */}
+        {activeTab === 'bucket' && (
+          <div key="bucket" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>دفترچه ماجراجویی‌ها و آرزوها 🌟</h2>
+            <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <input
+                type="text"
+                placeholder="یه قرار جدید تو اصفهان یا یه سفر باحال بنویس..."
+                value={newWish}
+                onChange={e => setNewWish(e.target.value)}
+                style={{ ...styles.inputField, flex: 1 }}
+              />
+              <button type="submit" style={{ ...styles.actionBtn, width: 'auto', padding: '12px 24px', background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
+                ثبت نقشه 🗺️
+              </button>
+            </form>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {bucketList.map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => toggleBucket(item.id, item.completed)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '14px 18px',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    background: item.completed ? 'rgba(46, 125, 50, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                    border: `2px solid ${item.completed ? '#4caf50' : t.border}`
+                  }}
+                >
+                  <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#81c784' : '#fff', fontWeight: 700 }}>
+                    {item.completed ? '✅' : '🤍'} {item.task}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                    {item.completed ? 'انجام شد!' : 'کلیک برای انجام'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ۸. مدیریت پین‌کد محرمانه */}
         {activeTab === 'vault' && (
           <div key="vault" className="slide-in-left" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>
@@ -987,6 +1158,10 @@ export default function App() {
         @keyframes floatUp {
           0% { transform: translateY(0) scale(0.8); opacity: 1; }
           100% { transform: translateY(-100vh) scale(1.4); opacity: 0; }
+        }
+        @keyframes touchRipple {
+          0% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+          100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
         }
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
