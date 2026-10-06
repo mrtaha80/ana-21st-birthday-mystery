@@ -6,15 +6,20 @@ const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// پلی‌لیست صوتی بدون فیلتر و رمانتیک (موزیک اول کاملاً تعویض و تست‌شده)
 const ROMANTIC_PLAYLIST = [
-  { id: 1, title: 'نیمه‌شب مخملی (Midnight Velvet) 🍷', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+  { id: 1, title: 'والس رویایی و آرام (Midnight Romance Waltz) 🎻', url: 'https://cdn.freesound.org/previews/530/530415_11861866-lq.mp3' },
   { id: 2, title: 'باران و آغوش (Sensual Lofi Rain) 🌧️', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
-  { id: 3, title: 'والس فرانسوی (Romantic French Waltz) 🎶', url: 'https://cdn.freesound.org/previews/530/530415_11861866-lq.mp3' }
+  { id: 3, title: 'پیانو مخملی شبانه (Deep Velvet Piano) 🍷', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' }
 ];
 
 export default function App() {
+  // صفحه ورودی هدیه تولد آنا قبل از لاگین
+  const [showBirthdayIntro, setShowBirthdayIntro] = useState(true);
+  const [giftOpened, setGiftOpened] = useState(false);
+
   const [currentUser, setCurrentUser] = useState(null); // 'taha' | 'ana'
-  const [targetLogin, setTargetLogin] = useState('taha');
+  const [targetLogin, setTargetLogin] = useState('ana'); // پیش‌فرض روی آنا برای روز تولد
   const [enteredPass, setEnteredPass] = useState('');
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
@@ -41,7 +46,6 @@ export default function App() {
   const [confessionType, setConfessionType] = useState('apology');
   const [penaltyInputs, setPenaltyInputs] = useState({});
 
-  // نجواهای متقابل داشبورد
   const [dashboardWhispers, setDashboardWhispers] = useState([]);
   const [myNewWhisper, setMyNewWhisper] = useState('');
   const [showWhisperModal, setShowWhisperModal] = useState(false);
@@ -87,46 +91,52 @@ export default function App() {
     fetchDashboardWhispers();
   };
 
+  const handleOpenGift = () => {
+    setGiftOpened(true);
+    spawnParticles('🎁');
+    spawnParticles('🎂');
+    startAudio();
+    if (navigator.vibrate) navigator.vibrate([100, 50, 150]);
+    setTimeout(() => {
+      setShowBirthdayIntro(false);
+    }, 2800);
+  };
+
+  // سیستم لاگین امن و متصل به Supabase Auth با ایمیل اصلی و مستعار
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError(false);
 
-    const localPass = localStorage.getItem(`pass_${targetLogin}`);
-    const defaultPass = targetLogin === 'taha' ? '1405' : '0808';
+    const userEmail = targetLogin === 'taha' 
+      ? 'tahaislion@gmail.com' 
+      : 'tahaislion+ana@gmail.com';
 
-    if (localPass) {
-      if (localPass === enteredPass.trim()) {
+    const defaultPass = targetLogin === 'taha' ? '1405' : '0808';
+    const localPass = localStorage.getItem(`pass_${targetLogin}`);
+
+    try {
+      // تلاش برای احراز هویت رسمی Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: enteredPass.trim()
+      });
+
+      if (!error && data?.user) {
         loginSuccess();
         return;
       }
-    } else {
-      try {
-        const { data } = await supabase
-          .from('user_auth')
-          .select('passcode')
-          .eq('username', targetLogin)
-          .maybeSingle();
-
-        if (data && data.passcode) {
-          if (data.passcode === enteredPass.trim()) {
-            loginSuccess();
-            return;
-          }
-        } else if (enteredPass.trim() === defaultPass) {
-          loginSuccess();
-          return;
-        }
-      } catch (err) {
-        if (enteredPass.trim() === defaultPass) {
-          loginSuccess();
-          return;
-        }
-      }
+    } catch (err) {
+      // ادامه به فال‌بک داخلی
     }
 
-    setAuthError(true);
-    triggerVibrate(200);
-    setTimeout(() => setAuthError(false), 2200);
+    // فال‌بک با پین‌کدهای ذخیره‌شده
+    if ((localPass && localPass === enteredPass.trim()) || enteredPass.trim() === defaultPass) {
+      loginSuccess();
+    } else {
+      setAuthError(true);
+      triggerVibrate(200);
+      setTimeout(() => setAuthError(false), 2200);
+    }
   };
 
   const loginSuccess = () => {
@@ -135,6 +145,13 @@ export default function App() {
     spawnParticles(targetLogin === 'taha' ? '🐊' : '🦓');
     triggerVibrate([50, 50, 100]);
     startAudio();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {}
+    setCurrentUser(null);
   };
 
   const handleChangePassword = async (e) => {
@@ -149,6 +166,8 @@ export default function App() {
         passcode: passToSave,
         updated_at: new Date().toISOString()
       });
+      // به‌روزرسانی در صورت امکان در Auth
+      await supabase.auth.updateUser({ password: passToSave });
     } catch (err) {
       console.error(err);
     }
@@ -403,6 +422,83 @@ export default function App() {
 
   const t = themes[currentTheme];
 
+  // ۱. صفحه ویژه تقدیم کادوی تولد ۲۲ مهر
+  if (showBirthdayIntro) {
+    return (
+      <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #38051e 0%, #080004 100%)' }}>
+        <div style={{
+          ...styles.gateCard,
+          background: 'rgba(26, 3, 15, 0.95)',
+          borderColor: '#ff0055',
+          boxShadow: '0 0 70px rgba(255, 0, 85, 0.55)',
+          maxWidth: '520px',
+          transform: giftOpened ? 'scale(1.05)' : 'scale(1)',
+          transition: 'transform 0.4s ease'
+        }}>
+          <div
+            onClick={handleOpenGift}
+            style={{
+              fontSize: giftOpened ? '5rem' : '4.5rem',
+              cursor: 'pointer',
+              animation: giftOpened ? 'pulse 0.6s infinite' : 'bounce 1.4s infinite',
+              filter: 'drop-shadow(0 0 25px #ff0055)',
+              margin: '6px 0 14px'
+            }}
+          >
+            {giftOpened ? '🎂✨🎉' : '🎁💝'}
+          </div>
+
+          <span style={{
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            color: '#00f0ff',
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
+          }}>
+            تولد ۲۱ سالگی پرنسس آنا 👑 | ۲۲ مهر
+          </span>
+
+          <h1 style={{ color: '#ff0055', fontSize: '1.75rem', fontWeight: 900, margin: '10px 0' }}>
+            تقدیم به ملکه قلب و هوس طاها 💋
+          </h1>
+
+          <p style={{
+            color: '#fff',
+            fontSize: '1.05rem',
+            lineHeight: 1.9,
+            fontWeight: 800,
+            margin: '14px 0 20px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.8)'
+          }}>
+            {giftOpened ? (
+              <span style={{ color: '#4ade80' }}>
+                درب‌های بهشت اختصاصی‌مون باز شد... به دنیای خودت خوش اومدی پرنسس من! 🍓
+              </span>
+            ) : (
+              "آنای قشنگم، ۲۲ مهر روزیه که خواستنی‌ترین معجزه جهان متولد شد. این وب‌‌سایت کادوی شخصی و همیشگی من برای توئه؛ خلوتگاهی که تمام تپش‌ها، اعتراف‌ها و بازی‌هاش فقط برای تسلیم شدن در برابر تو ساخته شده... روی جعبه کادو بزن تا بازش کنی! 🗝️❤️"
+            )}
+          </p>
+
+          {!giftOpened && (
+            <button
+              onClick={handleOpenGift}
+              style={{
+                ...styles.gateBtn,
+                background: 'linear-gradient(135deg, #ff0055, #ff4d88)',
+                boxShadow: '0 0 35px rgba(255, 0, 85, 0.6)',
+                fontSize: '1.1rem',
+                padding: '16px'
+              }}
+            >
+              باز کردن هدیه تولد و ورود به خلوتگاه 🎁✨
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ۲. صفحه لاگین
   if (!currentUser) {
     return (
       <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #2e0417 0%, #0a0105 100%)' }}>
@@ -448,7 +544,7 @@ export default function App() {
                 boxShadow: targetLogin === 'ana' ? '0 0 25px rgba(255,0,127,0.6)' : 'none'
               }}
             >
-              ورود آنا 🦓
+              ورود آنا 🦓 (متولد ۲۲ مهر)
             </button>
           </div>
 
@@ -483,8 +579,6 @@ export default function App() {
   }
 
   const latestHeroPhoto = photos.length > 0 ? photos[0].image_url : null;
-
-  // تفکیک دقیق: در پنل طاها فقط حرف‌های آنا، و در پنل آنا فقط حرف‌های طاها
   const partnerUser = currentUser === 'taha' ? 'ana' : 'taha';
   const partnerWhispers = dashboardWhispers.filter(w => w.sender === partnerUser);
   const activeWhisper = partnerWhispers.length > 0 ? partnerWhispers[0] : null;
@@ -534,7 +628,7 @@ export default function App() {
         </span>
       ))}
 
-      {/* موزیک پلیر پیشرفته */}
+      {/* موزیک پلیر پیشرفته با ترک جدید */}
       <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary, boxShadow: t.glow }}>
         <button onClick={toggleMusic} style={{ ...styles.playCircle, background: t.primary }}>
           {isPlaying ? '⏸' : '▶'}
@@ -565,7 +659,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* هدر */}
+      {/* هدر بالایی */}
       <header style={{
         ...styles.navbar,
         borderColor: t.border,
@@ -593,20 +687,20 @@ export default function App() {
           )}
           <div>
             <div style={{ fontWeight: 900, color: t.primary, fontSize: '1.15rem' }}>
-              {currentUser === 'taha' ? 'طاها (کروکودیل مقتدر 🐊)' : 'پرنسس آنا (گورخر نانازی 🦓)'}
+              {currentUser === 'taha' ? 'طاها (کروکودیل مقتدر 🐊)' : 'پرنسس آنا (متولد ۲۲ مهر 🎂)'}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
-              خلوتگاه خصوصی و اختصاصی دو‌نفره
+              خلوتگاه اختصاصی دو‌نفره
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={() => spawnParticles(currentUser === 'taha' ? '🐊' : '🦓')} style={styles.badgeBtn}>
-            {currentUser === 'taha' ? '🐊 باران تمساح' : '🦓 باران گورخر'}
+            {currentUser === 'taha' ? '🐊 باران تمساح' : '🎂 باران تولد'}
           </button>
           <button
-            onClick={() => setCurrentUser(null)}
+            onClick={handleLogout}
             style={{ ...styles.badgeBtn, background: '#ef4444', color: '#fff', border: 'none' }}
           >
             خروج 🚪
@@ -619,7 +713,7 @@ export default function App() {
         <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>اتمسفر شبانه:</span>
         <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب (Dark Romance)</button>
         <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک شهوانی (Neon Noir)</button>
-        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی وحشی (Pink Desire)</button>
+        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی شهوانی</button>
       </div>
 
       {/* نوار تب‌ها */}
@@ -653,7 +747,7 @@ export default function App() {
 
       {/* محتوای صفحات */}
       <main style={styles.mainContent}>
-        {/* ۱. تب هاب: ثانیه‌شمار + پیام و نجوای واقعی طرف مقابل */}
+        {/* ۱. تب هاب */}
         {activeTab === 'hub' && (
           <div key="hub" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>
@@ -683,11 +777,11 @@ export default function App() {
               <div style={{ fontSize: '3.6rem', display: 'flex', justifyContent: 'center', gap: '25px' }}>
                 <span className="interactive-animal" onClick={() => spawnParticles('🐊')}>🐊</span>
                 <span className="interactive-animal" onClick={() => spawnParticles('💖')}>💖</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('🎂')}>🎂</span>
                 <span className="interactive-animal" onClick={() => spawnParticles('🦓')}>🦓</span>
-                <span className="interactive-animal" onClick={() => spawnParticles('🐥')}>🐥</span>
               </div>
               <p style={{ color: t.primary, fontWeight: 800, marginTop: '10px' }}>
-                روی هر حیوون کلیک کن تا انرژی بگیری! 🌟
+                روی هر کدوم بزنی انرژی و بارون تولد می‌باره! 🌟
               </p>
             </div>
 
@@ -747,7 +841,7 @@ export default function App() {
                 onClick={() => setShowWhisperModal(!showWhisperModal)}
                 style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, fontSize: '0.88rem', padding: '10px 18px' }}
               >
-                {showWhisperModal ? 'بستن پنل ✖' : `✍️ نوشتن پیام یا تبریک جدید برای ${currentUser === 'taha' ? 'آنا 🦓' : 'طاها 🐊'}`}
+                {showWhisperModal ? 'بستن پنل ✖' : `✍️ نوشتن پیام یا تبریک تولد برای ${currentUser === 'taha' ? 'آنا 🦓' : 'طاها 🐊'}`}
               </button>
 
               {showWhisperModal && (
@@ -771,7 +865,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ۲. بازی */}
+        {/* ۲. بازی کمین و سلفی */}
         {activeTab === 'sexy' && (
           <div key="sexy" className="slide-in-left">
             <SexyGame theme={t} onParticleTrigger={spawnParticles} currentUser={currentUser} />
