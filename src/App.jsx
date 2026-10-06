@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import SexyGame from './SexyGame.jsx';
-import { generateAICoupleContent } from './aiService.js';
 
 const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
@@ -42,10 +41,9 @@ export default function App() {
   const [confessionType, setConfessionType] = useState('apology');
   const [penaltyInputs, setPenaltyInputs] = useState({});
 
-  // مدیریت نجواهای داشبورد متقابل (تفکیک‌شده برای هر کاربر)
+  // نجواهای متقابل داشبورد
   const [dashboardWhispers, setDashboardWhispers] = useState([]);
   const [myNewWhisper, setMyNewWhisper] = useState('');
-  const [isAiGeneratingWhisper, setIsAiGeneratingWhisper] = useState(false);
   const [showWhisperModal, setShowWhisperModal] = useState(false);
 
   const [passionMeter, setPassionMeter] = useState(40);
@@ -202,7 +200,6 @@ export default function App() {
     }
   };
 
-  // دریافت پیام‌ها و نجواهای داشبورد متقابل
   const fetchDashboardWhispers = async () => {
     try {
       const { data } = await supabase
@@ -215,15 +212,14 @@ export default function App() {
     }
   };
 
-  // ثبت دستی نجوا برای طرف مقابل
-  const handleSaveManualWhisper = async (e) => {
+  const handleSaveWhisper = async (e) => {
     e.preventDefault();
     if (!myNewWhisper.trim()) return;
 
     try {
       await supabase.from('custom_letters').insert([{
         sender: currentUser,
-        title: 'دست‌نویس',
+        title: 'عاشقانه',
         content: myNewWhisper.trim(),
         is_pinned: true
       }]);
@@ -233,27 +229,6 @@ export default function App() {
       spawnParticles('💌');
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  // تولید نجوا با هوش مصنوعی برای قرارگیری در پنل طرف مقابل
-  const handleGenerateAiWhisper = async () => {
-    setIsAiGeneratingWhisper(true);
-    try {
-      const text = await generateAICoupleContent('love_whisper', currentUser);
-      await supabase.from('custom_letters').insert([{
-        sender: currentUser,
-        title: 'هوش مصنوعی',
-        content: text,
-        is_pinned: true
-      }]);
-      fetchDashboardWhispers();
-      setShowWhisperModal(false);
-      spawnParticles('🤖');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAiGeneratingWhisper(false);
     }
   };
 
@@ -347,7 +322,7 @@ export default function App() {
 
     try {
       await supabase.from('heart_confessions').update({
-        message: `${confessions.find(c => c.id === id).message} \n\n[⚡ جریمه دست‌نویس تعیین‌شده: ${text.trim()}]`
+        message: `${confessions.find(c => c.id === id).message} \n\n[⚡ جریمه تعیین‌شده: ${text.trim()}]`
       }).eq('id', id);
 
       setPenaltyInputs(prev => ({ ...prev, [id]: '' }));
@@ -509,10 +484,10 @@ export default function App() {
 
   const latestHeroPhoto = photos.length > 0 ? photos[0].image_url : null;
 
-  // فیلتر هوشمند: در پنل طاها فقط پیام‌های آنا نمایش داده می‌شود، و در پنل آنا فقط پیام‌های طاها!
+  // تفکیک دقیق: در پنل طاها فقط حرف‌های آنا، و در پنل آنا فقط حرف‌های طاها
   const partnerUser = currentUser === 'taha' ? 'ana' : 'taha';
-  const partnerWhisperList = dashboardWhispers.filter(w => w.sender === partnerUser);
-  const activeDisplayWhisper = partnerWhisperList.length > 0 ? partnerWhisperList[0] : null;
+  const partnerWhispers = dashboardWhispers.filter(w => w.sender === partnerUser);
+  const activeWhisper = partnerWhispers.length > 0 ? partnerWhispers[0] : null;
 
   return (
     <div style={{ ...styles.appContainer, background: t.bg }} onClick={handleGlobalTouch}>
@@ -590,7 +565,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* هدر بالایی */}
+      {/* هدر */}
       <header style={{
         ...styles.navbar,
         borderColor: t.border,
@@ -642,9 +617,9 @@ export default function App() {
       {/* نوار تغییر اتمسفر */}
       <div style={styles.themeSelectorBar}>
         <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>اتمسفر شبانه:</span>
-        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب</button>
-        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک نئون</button>
-        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی شهوانی</button>
+        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب (Dark Romance)</button>
+        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک شهوانی (Neon Noir)</button>
+        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی وحشی (Pink Desire)</button>
       </div>
 
       {/* نوار تب‌ها */}
@@ -746,88 +721,64 @@ export default function App() {
               </div>
             )}
 
-            {/* کارت هوشمند نجوای متقابل (با مشخص کردن منبع: دست‌نویس یا AI) */}
+            {/* کارت نجوای واقعی طرف مقابل */}
             <div style={{
               background: 'rgba(0,0,0,0.6)',
-              padding: '20px',
+              padding: '22px',
               borderRadius: '24px',
               border: `2px dashed ${t.primary}`,
               textAlign: 'center',
-              position: 'relative'
+              position: 'relative',
+              marginTop: '15px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ color: '#00f0ff', fontSize: '0.82rem', fontWeight: 900 }}>
-                  💌 نجوای {currentUser === 'taha' ? 'پرنسس آنا 🦓' : 'طاها کروکودیل 🐊'} برای تو:
-                </span>
-                {activeDisplayWhisper && (
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 900,
-                    padding: '3px 8px',
-                    borderRadius: '10px',
-                    background: activeDisplayWhisper.title.includes('دست‌نویس') ? 'rgba(255, 0, 85, 0.25)' : 'rgba(0, 240, 255, 0.25)',
-                    color: activeDisplayWhisper.title.includes('دست‌‌نویس') ? '#ff758c' : '#00f0ff',
-                    border: `1px solid ${activeDisplayWhisper.title.includes('دست‌نویس') ? '#ff0055' : '#00f0ff'}`
-                  }}>
-                    {activeDisplayWhisper.title.includes('دست‌‌نویس') ? '✍️ دست‌نویسِ خودش' : '🤖 با الهام از هوش مصنوعی'}
-                  </span>
-                )}
-              </div>
+              <span style={{ color: '#00f0ff', fontSize: '0.88rem', fontWeight: 900 }}>
+                💌 حرف دل {currentUser === 'taha' ? 'آنا 🦓' : 'طاها 🐊'} برای تو:
+              </span>
 
-              <p style={{ fontSize: '1.15rem', color: '#fff', fontWeight: 900, lineHeight: 1.85, margin: '12px 0' }}>
-                {activeDisplayWhisper 
-                  ? activeDisplayWhisper.content 
+              <p style={{ fontSize: '1.18rem', color: '#fff', fontWeight: 900, lineHeight: 1.85, margin: '14px 0' }}>
+                {activeWhisper 
+                  ? activeWhisper.content 
                   : (currentUser === 'taha' 
-                      ? "آنا هنوز نجوایی برای تو ننوشته! با دکمه زیر برایش یک پیام بفرست." 
-                      : "طاها هنوز نجوایی برای تو ننوشته! با دکمه زیر برایش یک پیام بفرست.")}
+                      ? "۲۲ مهر زیباترین روز تقویم منه؛ ممنونم که کنارمی کروکودیل من... 🎂💋" 
+                      : "تولدت مبارک پرنسس من؛ تمام نفس‌های طاها امشب فدای یک لبخند توئه... 👑🔥")}
               </p>
 
               <button
                 onClick={() => setShowWhisperModal(!showWhisperModal)}
-                style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, marginTop: '8px', fontSize: '0.88rem', padding: '10px 18px' }}
+                style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})`, fontSize: '0.88rem', padding: '10px 18px' }}
               >
-                {showWhisperModal ? 'بستن پنل ✖' : `✍️ نوشتن یا تولید نجوای جدید برای ${currentUser === 'taha' ? 'آنا 🦓' : 'طاها 🐊'}`}
+                {showWhisperModal ? 'بستن پنل ✖' : `✍️ نوشتن پیام یا تبریک جدید برای ${currentUser === 'taha' ? 'آنا 🦓' : 'طاها 🐊'}`}
               </button>
 
-              {/* فرم کشویی ثبت نجوا برای طرف مقابل */}
               {showWhisperModal && (
                 <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '18px', border: '1px solid rgba(255,0,85,0.3)' }}>
                   <textarea
                     rows="3"
-                    placeholder={`متن عاشقانه یا شیطنت خودت رو برای داشبورد ${currentUser === 'taha' ? 'آنا' : 'طاها'} بنویس...`}
+                    placeholder={`متن عاشقانه، تبریک تولد ۲۲ مهر یا دل‌نوشته‌‌ات رو برای داشبورد ${currentUser === 'taha' ? 'آنا' : 'طاها'} بنویس...`}
                     value={myNewWhisper}
                     onChange={e => setMyNewWhisper(e.target.value)}
                     style={{ ...styles.inputField, resize: 'none', lineHeight: 1.7 }}
                   />
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                    <button
-                      onClick={handleSaveManualWhisper}
-                      style={{ ...styles.actionBtn, flex: 2, background: 'linear-gradient(135deg, #ff0055, #ff4d88)', fontSize: '0.85rem' }}
-                    >
-                      ثبت دست‌نویس من ✍️
-                    </button>
-                    <button
-                      onClick={handleGenerateAiWhisper}
-                      disabled={isAiGeneratingWhisper}
-                      style={{ ...styles.actionBtn, flex: 2, background: 'linear-gradient(135deg, #a855f7, #ec4899)', fontSize: '0.85rem' }}
-                    >
-                      {isAiGeneratingWhisper ? 'در حال تولید... ⏳' : 'تولید با هوش مصنوعی 🤖'}
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleSaveWhisper}
+                    style={{ ...styles.actionBtn, marginTop: '10px', background: 'linear-gradient(135deg, #ff0055, #ff4d88)' }}
+                  >
+                    ثبت در داشبورد عشقم 💌
+                  </button>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* ۲. بازی اختصاصی با اتصال اتوماتیک هویت بازیکن */}
+        {/* ۲. بازی */}
         {activeTab === 'sexy' && (
           <div key="sexy" className="slide-in-left">
             <SexyGame theme={t} onParticleTrigger={spawnParticles} currentUser={currentUser} />
           </div>
         )}
 
-        {/* ۳. پل دلتنگی، معذرت‌خواهی و تعیین تنبیه متقابل زنده */}
+        {/* ۳. پل دلتنگی و عذرخواهی */}
         {activeTab === 'heart' && (
           <div key="heart" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <div style={{ textAlign: 'center', marginBottom: '22px' }}>
@@ -933,7 +884,7 @@ export default function App() {
                         {item.message}
                       </p>
 
-                      {!isMine && !item.message.includes('جریمه دست‌نویس تعیین‌شده') && !item.forgiven && (
+                      {!isMine && !item.message.includes('جریمه تعیین‌شده') && !item.forgiven && (
                         <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,0,85,0.1)', borderRadius: '14px', border: '1px dashed #ff0055' }}>
                           <span style={{ color: '#00f0ff', fontSize: '0.82rem', fontWeight: 800 }}>
                             برای این پیام یک جریمه/تنبیه تعیین کن:
