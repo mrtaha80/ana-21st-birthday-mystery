@@ -13,15 +13,15 @@ export default function App() {
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
 
-  // تغییر رمز اختصاصی
+  // تغییر رمز قطعی (حذف دائمی رمز قبلی)
   const [newPassInput, setNewPassInput] = useState('');
   const [passChangeSuccess, setPassChangeSuccess] = useState(false);
 
-  // سیستم موزیک
+  // سیستم موزیک پلیر پایدار با لود خودکار
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // تم‌ها: velvet (سکسی زرشکی)، zebra (نئون)، pink (توت‌فرنگی)
+  // تم‌های اروتیک و هات: velvet (مخمل و شراب)، neonNoir (سایبرپانک اروتیک)، pinkDesire (شهوت صورتی)
   const [currentTheme, setCurrentTheme] = useState('velvet');
 
   // داده‌های دیتابیس
@@ -33,20 +33,20 @@ export default function App() {
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
 
-  // بخش جدید: اعترافات، معذرت‌خواهی و شکستن غرور
+  // پل دلتنگی و شکستن غرور
   const [confessions, setConfessions] = useState([]);
   const [newConfession, setNewConfession] = useState('');
-  const [confessionType, setConfessionType] = useState('apology'); // apology, secret, appreciation
+  const [confessionType, setConfessionType] = useState('apology');
 
-  // رادار هیت و صمیمیت
-  const [passionMeter, setPassionMeter] = useState(30);
+  // رادار هیت و صمیمیت لمسی
+  const [passionMeter, setPassionMeter] = useState(35);
   const [intimateAction, setIntimateAction] = useState(null);
 
-  // ذرات و پیام‌ها
+  // انیمیشن‌ها و ذرات
   const [particles, setParticles] = useState([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // ثانیه‌‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
+  // ثانیه‌شمار رابطه (از ۸ آگوست ۲۰۲۶)
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // ورود هوشمند
+  // متد هوشمند ورود
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError(false);
@@ -83,33 +83,41 @@ export default function App() {
     const localPass = localStorage.getItem(`pass_${targetLogin}`);
     const defaultPass = targetLogin === 'taha' ? '1405' : '0808';
 
-    if (localPass && localPass === enteredPass.trim()) {
-      loginSuccess();
-      return;
-    }
-
-    try {
-      const { data } = await supabase
-        .from('user_auth')
-        .select('*')
-        .eq('username', targetLogin)
-        .maybeSingle();
-
-      if (data && data.passcode === enteredPass.trim()) {
+    // ۱. بررسی رمز تغییریافته در لوکال
+    if (localPass) {
+      if (localPass === enteredPass.trim()) {
         loginSuccess();
         return;
       }
-    } catch (err) {
-      console.log(err);
+    } else {
+      // ۲. در صورتی که رمزی ست نشده بود، بررسی دیتابیس ابری
+      try {
+        const { data } = await supabase
+          .from('user_auth')
+          .select('passcode')
+          .eq('username', targetLogin)
+          .maybeSingle();
+
+        if (data && data.passcode) {
+          if (data.passcode === enteredPass.trim()) {
+            loginSuccess();
+            return;
+          }
+        } else if (enteredPass.trim() === defaultPass) {
+          loginSuccess();
+          return;
+        }
+      } catch (err) {
+        if (enteredPass.trim() === defaultPass) {
+          loginSuccess();
+          return;
+        }
+      }
     }
 
-    if (enteredPass.trim() === defaultPass) {
-      loginSuccess();
-    } else {
-      setAuthError(true);
-      triggerVibrate(200);
-      setTimeout(() => setAuthError(false), 2200);
-    }
+    setAuthError(true);
+    triggerVibrate(200);
+    setTimeout(() => setAuthError(false), 2200);
   };
 
   const loginSuccess = () => {
@@ -120,10 +128,14 @@ export default function App() {
     startAudio();
   };
 
+  // تغییر قطعی رمز و ابطال همیشگی رمز قبلی
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!newPassInput.trim()) return;
+
     const passToSave = newPassInput.trim();
+
+    // ذخیره رمز جدید و اوررایت کامل
     localStorage.setItem(`pass_${currentUser}`, passToSave);
 
     try {
@@ -133,7 +145,7 @@ export default function App() {
         updated_at: new Date().toISOString()
       });
     } catch (err) {
-      console.log(err);
+      console.log('Error updating pass on cloud:', err);
     }
 
     setPassChangeSuccess(true);
@@ -219,7 +231,6 @@ export default function App() {
     spawnParticles('🎉');
   };
 
-  // فانکشن‌های بخش جدید شکستن غرور و معذرت‌خواهی
   const fetchConfessions = async () => {
     try {
       const { data } = await supabase.from('heart_confessions').select('*').order('id', { ascending: false });
@@ -259,7 +270,6 @@ export default function App() {
     }
   };
 
-  // رادار هیت
   const boostPassion = () => {
     triggerVibrate(60);
     spawnParticles('🔥');
@@ -267,7 +277,7 @@ export default function App() {
       const next = prev + 15;
       if (next >= 100) {
         triggerVibrate([100, 50, 150]);
-        setIntimateAction('⚡ به اوج رسید! همین حالا طاها کروکودیل باید ۳۰ ثانیه لب‌ها یا ترقوه آنا رو غرق بوسه ملایم کنه!');
+        setIntimateAction('⚡ ولتاژ به اوج رسید! طاها کروکودیل موظفه همین الان به مدت ۴۰ ثانیه گردن، ترقوه و لب‌های آنا رو غرق بوسه خمار و آرامش‌بخش کنه!');
         return 20;
       }
       return next;
@@ -290,60 +300,60 @@ export default function App() {
   };
 
   const quotes = [
-    "طاها کروکودیل میگه: تمام خطوط تن و خنده‌‌هات زیباترین شاهکار افرینشه پرنسس من 🐊🔥",
-    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر موهات هیچ روحی نداره 🦓✨",
-    "کروکودیل عاشق آماده‌ست تا طعمه نازش رو تو بغلش قفل کنه 🐊💋",
-    "از ۸ آگوست ۲۰۲۶ تا ابد، تمام نبض و هوس و روح من مال توئه 🍓",
-    "تو سکسی‌ترین، باهوش‌ترین و دوست‌داشتنی‌ترین اتفاق دنیایی 🌸🎀"
+    "طاها کروکودیل میگه: تمام خطوط تن و لمس داغ بدنت، مقدس‌ترین عبادت شب‌های منه پرنسس من 🐊🔥",
+    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر گردنت هیچ جنونی نداره 🦓✨",
+    "کروکودیل عاشق در کمینه تا صید دلبرش رو در آغوشش قفل کنه و به اوج پرواز بده 🐊💋",
+    "از ۸ آگوست ۲۰۲۶ تا ابدیت، تمام نبض و عطش و روح من مال توئه 🍓",
+    "تو سکسی‌ترین، تحریک‌کننده‌ترین و خواستنی‌ترین شاهکار تاریخی 🌸🎀"
   ];
 
+  // تم‌های فوق‌العاده سکسی، اروتیک و شبانه (در دسترس هر دو نفر)
   const themes = {
     velvet: {
       id: 'velvet',
-      bg: 'radial-gradient(circle at 50% 30%, #2b0414 0%, #0d0107 100%)',
-      cardBg: 'rgba(35, 6, 20, 0.88)',
+      bg: 'radial-gradient(circle at 50% 25%, #2a0314 0%, #120108 50%, #050003 100%)',
+      cardBg: 'rgba(28, 4, 15, 0.88)',
       primary: '#ff0055',
-      accent: '#ff4d88',
-      border: 'rgba(255, 0, 85, 0.45)',
-      glow: '0 20px 50px rgba(255, 0, 85, 0.35)',
+      accent: '#ff3377',
+      border: 'rgba(255, 0, 85, 0.5)',
+      glow: '0 0 50px rgba(255, 0, 85, 0.45)',
       text: '#fff'
     },
-    zebra: {
-      id: 'zebra',
-      bg: 'radial-gradient(circle at 50% 50%, #15151e 0%, #050508 100%)',
-      cardBg: 'rgba(22, 22, 32, 0.92)',
-      primary: '#ff007f',
-      accent: '#00f0ff',
-      border: 'rgba(255, 0, 127, 0.4)',
-      glow: '0 20px 50px rgba(255, 0, 127, 0.35)',
+    neonNoir: {
+      id: 'neonNoir',
+      bg: 'radial-gradient(circle at 50% 40%, #170826 0%, #090212 50%, #030007 100%)',
+      cardBg: 'rgba(22, 8, 38, 0.9)',
+      primary: '#a855f7',
+      accent: '#ec4899',
+      border: 'rgba(168, 85, 247, 0.5)',
+      glow: '0 0 50px rgba(168, 85, 247, 0.45)',
       text: '#fff'
     },
-    pink: {
-      id: 'pink',
-      bg: 'linear-gradient(135deg, #ffeef4 0%, #ffc2d4 50%, #ffe4ec 100%)',
-      cardBg: 'rgba(255, 255, 255, 0.88)',
+    pinkDesire: {
+      id: 'pinkDesire',
+      bg: 'radial-gradient(circle at 50% 30%, #38081f 0%, #1a020d 60%, #080004 100%)',
+      cardBg: 'rgba(38, 5, 20, 0.9)',
       primary: '#ff1493',
       accent: '#ff69b4',
-      border: 'rgba(255, 105, 180, 0.35)',
-      glow: '0 20px 45px rgba(255, 20, 147, 0.25)',
-      text: '#444'
+      border: 'rgba(255, 20, 147, 0.5)',
+      glow: '0 0 50px rgba(255, 20, 147, 0.45)',
+      text: '#fff'
     }
   };
 
   const t = themes[currentTheme];
-  const isDark = t.id !== 'pink';
 
   if (!currentUser) {
     return (
-      <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #240312 0%, #080005 100%)' }}>
-        <div style={{ ...styles.gateCard, background: 'rgba(25, 4, 15, 0.92)', borderColor: '#ff0055', boxShadow: '0 0 50px rgba(255, 0, 85, 0.4)' }}>
+      <div style={{ ...styles.gateWrapper, background: 'radial-gradient(circle at center, #2e0417 0%, #0a0105 100%)' }}>
+        <div style={{ ...styles.gateCard, background: 'rgba(25, 3, 14, 0.94)', borderColor: '#ff0055', boxShadow: '0 0 60px rgba(255, 0, 85, 0.5)' }}>
           <div style={{ fontSize: '3.8rem', animation: 'bounce 1.5s infinite', marginBottom: '8px' }}>
             {targetLogin === 'taha' ? '🐊👑' : '🦓💋'}
           </div>
           <h1 style={{ color: '#ff0055', fontSize: '1.75rem', fontWeight: 900, marginBottom: '6px' }}>
             پرتال اختصاصی {targetLogin === 'taha' ? 'طاها (کروکودیل 🐊)' : 'آنا (گورخر 🦓)'}
           </h1>
-          <p style={{ color: '#aaa', fontSize: '0.88rem', marginBottom: '20px' }}>
+          <p style={{ color: '#bbb', fontSize: '0.88rem', marginBottom: '20px' }}>
             رمز ورود محرمانه خودت را وارد کن:
           </p>
 
@@ -357,9 +367,9 @@ export default function App() {
                 border: 'none',
                 fontWeight: 900,
                 cursor: 'pointer',
-                background: targetLogin === 'taha' ? 'linear-gradient(135deg, #ff0055, #990033)' : '#222',
+                background: targetLogin === 'taha' ? 'linear-gradient(135deg, #ff0055, #990033)' : '#1f030f',
                 color: '#fff',
-                boxShadow: targetLogin === 'taha' ? '0 0 20px rgba(255,0,85,0.5)' : 'none'
+                boxShadow: targetLogin === 'taha' ? '0 0 25px rgba(255,0,85,0.6)' : 'none'
               }}
             >
               ورود طاها 🐊
@@ -373,9 +383,9 @@ export default function App() {
                 border: 'none',
                 fontWeight: 900,
                 cursor: 'pointer',
-                background: targetLogin === 'ana' ? 'linear-gradient(135deg, #ff007f, #b30059)' : '#222',
+                background: targetLogin === 'ana' ? 'linear-gradient(135deg, #ff007f, #b30059)' : '#1f030f',
                 color: '#fff',
-                boxShadow: targetLogin === 'ana' ? '0 0 20px rgba(255,0,127,0.5)' : 'none'
+                boxShadow: targetLogin === 'ana' ? '0 0 25px rgba(255,0,127,0.6)' : 'none'
               }}
             >
               ورود آنا 🦓
@@ -398,7 +408,7 @@ export default function App() {
                 boxShadow: '0 0 25px rgba(255, 0, 85, 0.5)'
               }}
             >
-              گشودن درهای کهکشان 🗝️️🔥
+              گشودن درهای کهکشان 🗝🔥
             </button>
           </form>
 
@@ -416,14 +426,15 @@ export default function App() {
 
   return (
     <div style={{ ...styles.appContainer, background: t.bg }}>
+      {/* موزیک پلیر اروتیک و پایدار با سورس مستقیم */}
       <audio
         ref={audioRef}
         loop
         preload="auto"
-        src="https://cdn.freesound.org/previews/530/530415_11861866-lq.mp3"
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
       />
 
-      {/* ذرات معلق رمانتیک */}
+      {/* ذرات شناور رمانتیک */}
       {particles.map(p => (
         <span
           key={p.id}
@@ -441,14 +452,14 @@ export default function App() {
         </span>
       ))}
 
-      {/* موزیک پلیر شناور */}
+      {/* پلیر شناور لوکس اروتیک */}
       <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary, boxShadow: t.glow }}>
         <button onClick={toggleMusic} style={{ ...styles.playCircle, background: t.primary }}>
           {isPlaying ? '⏸' : '▶'}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff' }}>
-            {isPlaying ? 'در حال نواختن والس رمانتیک 🎶' : 'رو من بزن آهنگ پخش شه 🎵'}
+            {isPlaying ? 'نغمه والس شبانه در حال پخش... 🎶' : 'پخش موسیقی شبانه 🎵'}
           </span>
           {isPlaying && (
             <div style={styles.equalizerWave}>
@@ -461,11 +472,11 @@ export default function App() {
         </div>
       </div>
 
-      {/* هدر بالایی */}
+      {/* هدر بالایی دارک-اروتیک */}
       <header style={{
         ...styles.navbar,
         borderColor: t.border,
-        background: isDark ? 'rgba(20,3,12,0.85)' : 'rgba(255,255,255,0.85)'
+        background: 'rgba(18, 2, 10, 0.88)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {latestHeroPhoto && (
@@ -479,7 +490,7 @@ export default function App() {
                   borderRadius: '50%',
                   objectFit: 'cover',
                   border: `2px solid ${t.primary}`,
-                  boxShadow: `0 0 14px ${t.primary}`
+                  boxShadow: `0 0 15px ${t.primary}`
                 }}
               />
               <span style={{ position: 'absolute', bottom: '-4px', right: '-4px', fontSize: '1rem' }}>
@@ -491,8 +502,8 @@ export default function App() {
             <div style={{ fontWeight: 900, color: t.primary, fontSize: '1.15rem' }}>
               {currentUser === 'taha' ? 'طاها (کروکودیل مقتدر 🐊)' : 'پرنسس آنا (گورخر نانازی 🦓)'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: isDark ? '#aaa' : '#666' }}>
-              اتاق فرمان خصوصی دو‌نفره
+            <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
+              خلوتگاه خصوصی و اختصاصی دو‌نفره
             </div>
           </div>
         </div>
@@ -510,12 +521,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* تغییر اتمسفر تم */}
+      {/* نوار تغییر اتمسفر لوکس و سکسی (فعال برای جفتتون) */}
       <div style={styles.themeSelectorBar}>
-        <span style={{ fontWeight: 800, color: isDark ? '#fff' : '#333', fontSize: '0.85rem' }}>اتمسفر فضا:</span>
-        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل سرخابی (هات)</button>
-        <button onClick={() => setCurrentTheme('zebra')} style={{ ...styles.themeBtn, background: '#111', color: '#00f0ff', border: currentTheme === 'zebra' ? '2px solid #00f0ff' : 'none' }}>🦓 گورخر نئونی</button>
-        <button onClick={() => setCurrentTheme('pink')} style={{ ...styles.themeBtn, background: '#ffccd5', color: '#d81b60', border: currentTheme === 'pink' ? '2px solid #ff1493' : 'none' }}>🌸 صورتی توت‌فرنگی</button>
+        <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>اتمسفر شبانه:</span>
+        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب (Dark Romance)</button>
+        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک شهوانی (Neon Noir)</button>
+        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی وحشی (Pink Desire)</button>
       </div>
 
       {/* نوار تب‌ها */}
@@ -534,8 +545,8 @@ export default function App() {
             onClick={() => { setActiveTab(item.id); triggerVibrate(30); }}
             style={{
               ...styles.tabButton,
-              background: activeTab === item.id ? `linear-gradient(135deg, ${t.primary}, ${t.accent})` : (isDark ? 'rgba(30,3,16,0.8)' : '#fff'),
-              color: activeTab === item.id ? '#fff' : (isDark ? '#ff758c' : t.primary),
+              background: activeTab === item.id ? `linear-gradient(135deg, ${t.primary}, ${t.accent})` : 'rgba(25, 3, 14, 0.85)',
+              color: activeTab === item.id ? '#fff' : '#ff758c',
               border: `2px solid ${t.border}`,
               transform: activeTab === item.id ? 'translateY(-2px)' : 'none',
               boxShadow: activeTab === item.id ? t.glow : 'none'
@@ -556,21 +567,21 @@ export default function App() {
             </h2>
 
             <div style={styles.counterGrid}>
-              <div style={{ ...styles.counterBox, background: isDark ? '#14010a' : '#fff', borderColor: t.primary }}>
+              <div style={{ ...styles.counterBox, background: '#120108', borderColor: t.primary }}>
                 <span style={{ ...styles.counterNum, color: '#ff0055' }}>{timeTogether.days}</span>
-                <label style={{ ...styles.counterLabel, color: isDark ? '#aaa' : '#666' }}>روز باهم</label>
+                <label style={{ ...styles.counterLabel, color: '#aaa' }}>روز باهم</label>
               </div>
-              <div style={{ ...styles.counterBox, background: isDark ? '#14010a' : '#fff', borderColor: t.primary }}>
+              <div style={{ ...styles.counterBox, background: '#120108', borderColor: t.primary }}>
                 <span style={{ ...styles.counterNum, color: '#ff0055' }}>{timeTogether.hours}</span>
-                <label style={{ ...styles.counterLabel, color: isDark ? '#aaa' : '#666' }}>ساعت</label>
+                <label style={{ ...styles.counterLabel, color: '#aaa' }}>ساعت</label>
               </div>
-              <div style={{ ...styles.counterBox, background: isDark ? '#14010a' : '#fff', borderColor: t.primary }}>
+              <div style={{ ...styles.counterBox, background: '#120108', borderColor: t.primary }}>
                 <span style={{ ...styles.counterNum, color: '#ff0055' }}>{timeTogether.minutes}</span>
-                <label style={{ ...styles.counterLabel, color: isDark ? '#aaa' : '#666' }}>دقیقه</label>
+                <label style={{ ...styles.counterLabel, color: '#aaa' }}>دقیقه</label>
               </div>
-              <div style={{ ...styles.counterBox, background: isDark ? '#14010a' : '#fff', borderColor: t.primary }}>
+              <div style={{ ...styles.counterBox, background: '#120108', borderColor: t.primary }}>
                 <span style={{ ...styles.counterNum, color: '#ff4d88' }}>{timeTogether.seconds}</span>
-                <label style={{ ...styles.counterLabel, color: isDark ? '#aaa' : '#666' }}>ثانیه</label>
+                <label style={{ ...styles.counterLabel, color: '#aaa' }}>ثانیه</label>
               </div>
             </div>
 
@@ -617,13 +628,13 @@ export default function App() {
             )}
 
             <div style={{
-              background: isDark ? 'rgba(0,0,0,0.5)' : '#fff',
+              background: 'rgba(0,0,0,0.5)',
               padding: '20px',
               borderRadius: '22px',
               border: `2px dashed ${t.primary}`,
               textAlign: 'center'
             }}>
-              <p style={{ fontSize: '1.08rem', color: isDark ? '#fff' : t.primary, fontWeight: 800, lineHeight: 1.8 }}>
+              <p style={{ fontSize: '1.08rem', color: '#fff', fontWeight: 800, lineHeight: 1.8 }}>
                 {quotes[quoteIndex]}
               </p>
               <button
@@ -643,7 +654,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ۳. صفحه جدید: پل دلتنگی، معذرت‌خواهی و شکستن غرور 🕊️🤍 */}
+        {/* ۳. صفحه پل دلتنگی و شکستن غرور */}
         {activeTab === 'heart' && (
           <div key="heart" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <div style={{ textAlign: 'center', marginBottom: '22px' }}>
@@ -651,15 +662,14 @@ export default function App() {
               <h2 style={{ ...styles.cardTitle, color: t.primary, margin: '8px 0 4px' }}>
                 پل اعتراف، عذرخواهی و شکستن غرور
               </h2>
-              <p style={{ color: isDark ? '#ddd' : '#666', fontSize: '0.88rem', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto' }}>
+              <p style={{ color: '#ddd', fontSize: '0.88rem', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto' }}>
                 اینجا جاییه که هیچ غروری بینمون وجود نداره. اگر دلت گرفت، اگه ناخواسته دل همو شکوندیم، یا حرفی ته دلمون سنگینی می‌کنه، اینجا با شجاعت و عشق خالص می‌نویسیمش...
               </p>
             </div>
 
-            {/* انتخاب نوع پیام */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center' }}>
               {[
-                { id: 'apology', label: 'معذرت‌خواهی از ته‌دل 🥺' },
+                { id: 'apology', label: 'معذرت‌‌خواهی از ته‌دل 🥺' },
                 { id: 'secret', label: 'حقیقت پنهان در دلم 🤍' },
                 { id: 'appreciation', label: 'قدردانی بدون غرور 🌸' }
               ].map(cat => (
@@ -673,8 +683,8 @@ export default function App() {
                     fontWeight: 800,
                     fontSize: '0.82rem',
                     cursor: 'pointer',
-                    background: confessionType === cat.id ? t.primary : (isDark ? '#22030f' : '#f0f0f0'),
-                    color: confessionType === cat.id ? '#fff' : (isDark ? '#ff758c' : '#555'),
+                    background: confessionType === cat.id ? t.primary : '#1f030f',
+                    color: confessionType === cat.id ? '#fff' : '#ff758c',
                     transition: 'all 0.2s'
                   }}
                 >
@@ -683,7 +693,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* فرم ثبت اعتراف / عذرخواهی */}
             <form onSubmit={addConfession} style={{ marginBottom: '25px' }}>
               <textarea
                 rows="4"
@@ -714,7 +723,6 @@ export default function App() {
               </button>
             </form>
 
-            {/* لیست پیام‌ها و دکمه بخشیدن و بغل کردن */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '420px', overflowY: 'auto' }}>
               {confessions.length === 0 ? (
                 <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
@@ -725,7 +733,7 @@ export default function App() {
                   <div
                     key={item.id}
                     style={{
-                      background: isDark ? 'rgba(20, 2, 10, 0.9)' : '#fff5f8',
+                      background: 'rgba(20, 2, 10, 0.9)',
                       border: `2px solid ${item.forgiven ? '#10b981' : t.primary}`,
                       borderRadius: '20px',
                       padding: '16px 20px',
@@ -748,7 +756,7 @@ export default function App() {
                       </span>
                     </div>
 
-                    <p style={{ color: isDark ? '#fff' : '#222', fontSize: '0.98rem', lineHeight: 1.8, margin: '6px 0' }}>
+                    <p style={{ color: '#fff', fontSize: '0.98rem', lineHeight: 1.8, margin: '6px 0' }}>
                       {item.message}
                     </p>
 
@@ -789,7 +797,7 @@ export default function App() {
         {activeTab === 'heat' && (
           <div key="heat" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow, textAlign: 'center' }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>رادار هیت و صمیمیت لمسی دونفره ⚡🔥</h2>
-            <p style={{ color: isDark ? '#ccc' : '#666', fontSize: '0.9rem', marginBottom: '20px' }}>
+            <p style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '20px' }}>
               روی دکمه آتشین تپ کنید تا شارژ شود؛ در ۱۰۰٪ یک دستور سکسی و فوری صادر می‌شود!
             </p>
 
@@ -938,21 +946,21 @@ export default function App() {
                   }}
                 >
                   <span style={{ fontWeight: 800, fontSize: '0.85rem', color: t.primary }}>{n.sender}: </span>
-                  <p style={{ marginTop: '4px', color: isDark ? '#fff' : '#333' }}>{n.message}</p>
+                  <p style={{ marginTop: '4px', color: '#fff' }}>{n.message}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* ۷. مدیریت رمز اختصاصی */}
+        {/* ۷. مدیریت رمز اختصاصی (با ابطال کامل رمز قبلی) */}
         {activeTab === 'vault' && (
           <div key="vault" className="slide-in-left" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>
               مدیریت پین‌کد محرمانه ({currentUser === 'taha' ? 'طاها 🐊' : 'آنا 🦓'}) 🔒
             </h2>
-            <p style={{ color: isDark ? '#ccc' : '#666', fontSize: '0.9rem', textAlign: 'center', marginBottom: '20px' }}>
-              رمز جدیدت رو وارد کن تا هم در گوشیت و هم در سرور ثبت بشه و هیچ‌کس جز خودت نتونه وارد حسابت بشه:
+            <p style={{ color: '#ccc', fontSize: '0.9rem', textAlign: 'center', marginBottom: '20px' }}>
+              رمز جدید خود را وارد کنید. به محض ذخیره، رمز قبلی به‌طور کامل باطل و جایگزین می‌شود:
             </p>
 
             <form onSubmit={handleChangePassword} style={{ maxWidth: '400px', margin: '0 auto' }}>
@@ -967,13 +975,13 @@ export default function App() {
                 type="submit"
                 style={{ ...styles.actionBtn, marginTop: '12px', background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}
               >
-                ذخیره قطعی رمز جدید 🗝️
+                ابطال قبلی و ثبت رمز جدید 🗝️
               </button>
             </form>
 
             {passChangeSuccess && (
               <p style={{ color: '#10b981', textAlign: 'center', fontWeight: 800, marginTop: '14px' }}>
-                ✅ پین‌کد جدید با موفقیت ذخیره شد! دفعه بعد با همین رمز وارد می‌شوید.
+                ✅ پین‌کد جدید ثبت شد و رمز قبلی کاملاً باطل گردید!
               </p>
             )}
           </div>
@@ -1098,7 +1106,7 @@ const styles = {
     position: 'fixed',
     bottom: '20px',
     left: '20px',
-    background: 'rgba(15, 2, 8, 0.92)',
+    background: 'rgba(15, 2, 8, 0.94)',
     backdropFilter: 'blur(12px)',
     padding: '8px 18px',
     borderRadius: '30px',
@@ -1135,7 +1143,7 @@ const styles = {
     backdropFilter: 'blur(12px)'
   },
   badgeBtn: {
-    background: 'rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.08)',
     border: '1px solid rgba(255,0,85,0.4)',
     color: '#fff',
     borderRadius: '18px',
@@ -1150,7 +1158,7 @@ const styles = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 16px',
-    background: 'rgba(0, 0, 0, 0.15)',
+    background: 'rgba(0, 0, 0, 0.25)',
     flexWrap: 'wrap'
   },
   themeBtn: {
@@ -1206,7 +1214,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    boxShadow: '0 6px 15px rgba(0,0,0,0.2)'
+    boxShadow: '0 6px 15px rgba(0,0,0,0.3)'
   },
   counterNum: {
     fontSize: '2.4rem',
@@ -1223,7 +1231,7 @@ const styles = {
     padding: '12px 16px',
     borderRadius: '16px',
     border: '2px solid rgba(255,0,85,0.4)',
-    background: 'rgba(0,0,0,0.3)',
+    background: 'rgba(0,0,0,0.35)',
     color: '#fff',
     outline: 'none',
     fontSize: '0.95rem',
