@@ -5,65 +5,74 @@ const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// چالش‌های پایه
-const DEFAULT_DARES_ANA = [
-  "ثبت سلفی با استایل شبانه و نگاه خاص برای آلبوم اختصاصی 📸✨",
-  "۳۰ ثانیه لمس آرام و بوسیدن لاله گوش و گردن طاها 🐊💋",
-  "نجوا کردن یک خواسته و فانتزی پنهان در فاصله یک سانتی‌متری 🤫",
-  "اجرای یک فرمان دونفره بدون مخالفت تا پایان راند 🗝️"
+// چالش‌های بی‌پروا و جسورانه برای پرنسس آنا (وقتی آنا به دام می‌افتد)
+const ANA_DARES = [
+  "همین الان یک عکس بسیار جسورانه، با بالاتنه باز یا لباس زیر در نور ملایم اتاق برای طاها ثبت و آپلود کن 📸🔥",
+  "یک عکس تمام‌قد از پشت و انحنای بدنت با ژست جذاب برای گالری محرمانه طاها بفرست 🔞✨",
+  "آنا موظفه ۳۰ ثانیه لاله گوش و خط گردن طاها رو غرق بوسه‌های خمار و پیوسته کنه 🐊💋",
+  "یک سلفی بسیار داغ با نگاه خمار و گاز گرفتن لب پایین در تخت‌خواب ثبت کن 🫦🛏️",
+  "آنا باید پشت طاها رو به مدت ۲ دقیقه با سرانگشتانش نوازش عمیق و قلقلکی بده 💆‍♀️🔥",
+  "آنا باید در فاصله دو سانتی‌متری از لب‌های طاها، هوس‌انگیزترین خواسته‌اش رو با صدای آروم زمزمه کنه 🤫",
+  "عکس بدون لباس از زاویه نزدیک و متمرکز روی خط ترقوه و شانه مخصوص طاها 📸🍓"
 ];
 
-const DEFAULT_DARES_TAHA = [
-  "۵ دقیقه ماساژ آرام و عمیق شانه و گردن پرنسس با لوسیون 💆‍♂️✨",
-  "ثبت یک عکس جذاب با استایل مدنظر آنا برای گالری شخصی 📸💪",
-  "پذیرش کامل یک فرماندهی شبانه از سمت آنا بدون چون‌وچرا 👸🏼",
-  "بوسیدن دست‌ها و بیان صادقانه یکی از جذاب‌ترین حس‌های قلبی نسبت به آنا 💍"
+// چالش‌های سلطنتی، ماساژ و اطاعت برای طاها کروکودیل (وقتی طاها به دام می‌افتد)
+const TAHA_DARES = [
+  "طاها موظفه پیراهنش رو دربیاره و یک عکس هات از بالاتنه و بازوهای مردانه‌ش برای آنا ثبت کنه 📸💪",
+  "۵ دقیقه ماساژ عمیق و لوسیونی کمر، گردن و شانه‌های آنا پرنسس در نور ملایم شمع 💆‍♂️🕯️",
+  "پای پرنسس آنا رو روی پاهات بذار و مچ و کف پاش رو با محبت و طمأنینه ببوس 👣💋",
+  "پذیرش یک فرمان مطلق و جسورانه از سمت آنا؛ طاها فقط حق داره بگه چشم بانو! 👸🏼👑",
+  "طاها باید مسیر گردن تا سینه آنا رو با بوسه‌های متوالی و نفس‌های گرم طی کنه 🔥💋",
+  "طاها باید آنا رو محکم به سینه بچسبونه و ۳۰ ثانیه لب‌هاش رو به آتش بکشه بدون این‌که رهاش کنه 🐊❤️️"
 ];
 
 export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha' }) {
   const isAna = currentUser === 'ana';
 
-  const [gameMode, setGameMode] = useState('menu'); // menu, playing, gameover, custom
+  const [gameMode, setGameMode] = useState('menu'); // menu, playing, gameover, live
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
 
-  // لیست‌های قابل ویرایش محلی
-  const [customDares, setCustomDares] = useState(() => {
-    const saved = localStorage.getItem(`custom_dares_${currentUser}`);
-    return saved ? JSON.parse(saved) : (isAna ? DEFAULT_DARES_ANA : DEFAULT_DARES_TAHA);
-  });
-  const [newDareInput, setNewDareInput] = useState('');
-
-  // فیزیک روان و آسان بازی
+  // فیزیک روان و آسان برای بازی
   const [playerY, setPlayerY] = useState(0);
   const [jumpCount, setJumpCount] = useState(0);
   const [obstacleX, setObstacleX] = useState(100);
   const [collectibleX, setCollectibleX] = useState(150);
   const [hasShield, setHasShield] = useState(false);
 
-  // جریمه و آپلود
+  // وضعیت جریمه فعلی و همگام‌سازی زنده
   const [currentPenalty, setCurrentPenalty] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [livePenalties, setLivePenalties] = useState([]);
 
-  // ذخیره چالش‌های شخصی‌سازی‌شده
-  const handleAddCustomDare = (e) => {
-    e.preventDefault();
-    if (!newDareInput.trim()) return;
-    const updated = [...customDares, newDareInput.trim()];
-    setCustomDares(updated);
-    localStorage.setItem(`custom_dares_${currentUser}`, JSON.stringify(updated));
-    setNewDareInput('');
-    onParticleTrigger('✨');
+  // بارگذاری جریمه‌های ثبت‌شده در دیتابیس
+  useEffect(() => {
+    fetchLivePenalties();
+    const interval = setInterval(fetchLivePenalties, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchLivePenalties = async () => {
+    try {
+      const { data } = await supabase
+        .from('game_penalties')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(10);
+      if (data) setLivePenalties(data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // لوپ کنترل‌شده با سرعت ملایم و لذت‌بخش
+  // گیم لوپ روان
   useEffect(() => {
     let loop;
     if (gameMode === 'playing') {
-      const speed = 1.4; // سرعت ثابت و کاملاً کنترل‌پذیر
+      const speed = 1.45;
       loop = setInterval(() => {
         setObstacleX(prev => {
           if (prev <= 15 && prev >= 5 && playerY < 30) {
@@ -86,12 +95,12 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
           return prev - speed;
         });
 
-        // آیتم‌های کمکی
         setCollectibleX(prev => {
           if (prev <= 15 && prev >= 5 && playerY >= 25) {
             setHasShield(true);
-            setScore(s => s + 30);
+            setScore(s => s + 35);
             onParticleTrigger('💖');
+            if (navigator.vibrate) navigator.vibrate(40);
             return 160;
           }
           if (prev <= -10) return 150 + Math.random() * 40;
@@ -138,43 +147,69 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
     onParticleTrigger('🔥');
   };
 
-  const triggerGameOver = () => {
+  // ثبت آنی باخت در دیتابیس تا طرف مقابل متوجه شود
+  const triggerGameOver = async () => {
     setGameMode('gameover');
-    if (navigator.vibrate) navigator.vibrate([80, 40, 100]);
+    if (navigator.vibrate) navigator.vibrate([80, 50, 100]);
     onParticleTrigger('💥');
-    const picked = customDares[Math.floor(Math.random() * customDares.length)];
+
+    const pool = isAna ? ANA_DARES : TAHA_DARES;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
     setCurrentPenalty(picked);
+
+    try {
+      await supabase.from('game_penalties').insert([
+        {
+          player: isAna ? 'آنا 🦓' : 'طاها 🐊',
+          dare_text: picked,
+          status: 'در انتظار انجام و اثبات'
+        }
+      ]);
+      fetchLivePenalties();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const reRollPenalty = () => {
-    if (navigator.vibrate) navigator.vibrate(25);
-    onParticleTrigger('🎲');
-    const picked = customDares[Math.floor(Math.random() * customDares.length)];
+    const pool = isAna ? ANA_DARES : TAHA_DARES;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
     setCurrentPenalty(picked);
   };
 
-  const handleUploadPhoto = async (e) => {
+  // ارسال عکس برای تکمیل جریمه
+  const handleUploadProof = async (e) => {
     e.preventDefault();
     if (!photoUrl.trim()) return;
     setIsUploading(true);
 
     try {
-      const senderTag = isAna ? 'پرنسس آنا 🦓 (ثبت چالش)' : 'طاها کروکودیل 🐊 (ثبت چالش)';
-      const fullCaption = `🔥 ${senderTag}: ${currentPenalty} | پیام: ${caption || 'خلوتگاه دونفره'}`;
-      const { error } = await supabase.from('shared_photos').insert([
+      const senderTag = isAna ? 'پرنسس آنا 🦓 (اثبات جریمه)' : 'طاها کروکودیل 🐊 (اثبات جریمه)';
+      const fullCaption = `🔞 ${senderTag}: ${currentPenalty} | پیام: ${caption || 'ثبت در خلوتگاه'}`;
+
+      // ذخیره در گالری
+      await supabase.from('shared_photos').insert([
         { title: fullCaption, image_url: photoUrl.trim() }
       ]);
 
-      if (!error) {
-        setUploadSuccess(true);
-        if (navigator.vibrate) navigator.vibrate([60, 40, 80]);
-        onParticleTrigger('💋');
-        setTimeout(() => {
-          setGameMode('menu');
-          setPhotoUrl('');
-          setCaption('');
-        }, 2000);
-      }
+      // به‌روزرسانی وضعیت در جدول جریمه‌ها
+      await supabase.from('game_penalties').insert([
+        {
+          player: isAna ? 'آنا 🦓' : 'طاها 🐊',
+          dare_text: currentPenalty,
+          status: 'انجام شد و عکس ثبت گردید ✅',
+          photo_proof: photoUrl.trim()
+        }
+      ]);
+
+      setUploadSuccess(true);
+      fetchLivePenalties();
+      onParticleTrigger('💋');
+      setTimeout(() => {
+        setGameMode('menu');
+        setPhotoUrl('');
+        setCaption('');
+      }, 2000);
     } catch (err) {
       console.error(err);
     } finally {
@@ -186,19 +221,15 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
   const obstacleIcon = isAna ? '🐊' : '🦓';
 
   return (
-    <div style={{
-      ...styles.gameWrapper,
-      borderColor: theme.primary,
-      boxShadow: theme.glow
-    }}>
+    <div style={{ ...styles.gameWrapper, borderColor: theme.primary, boxShadow: theme.glow }}>
       <div style={styles.headerRow}>
         <div>
-          <span style={{ fontSize: '2rem' }}>{isAna ? '🦓💋🐊' : '🐊🔥🦓'}</span>
+          <span style={{ fontSize: '2.2rem' }}>{isAna ? '🦓💋🐊' : '🐊🔥🦓'}</span>
           <h2 style={{ color: theme.primary, fontSize: '1.35rem', fontWeight: 900, margin: '4px 0' }}>
-            {isAna ? 'کمینگاه صمیمانه: پرنسس آنا 🦓' : 'شکارگاه شبانه: طاها کروکودیل 🐊'}
+            {isAna ? 'کمینگاه شهوانی تمساح: اسارت پرنسس آنا 🦓' : 'شکارگاه شبانه: تسلیم طاها کروکودیل 🐊'}
           </h2>
-          <p style={{ color: '#aaa', fontSize: '0.82rem' }}>
-            گیم‌پلی روان و بهینه‌سازی‌شده برای تجربه آرام و جذاب دو‌نفره
+          <p style={{ color: '#ccc', fontSize: '0.82rem' }}>
+            باخت شما مستقیماً در پنل طرف مقابل ثبت می‌شود و منتظر عکس یا اقدام شما می‌ماند!
           </p>
         </div>
 
@@ -208,49 +239,49 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
         </div>
       </div>
 
-      {/* منوی حالت‌ها */}
+      {/* دکمه‌های ناوبری بازی */}
       <div style={{ display: 'flex', gap: '8px', margin: '14px 0 10px', justifyContent: 'center' }}>
         <button
           onClick={() => setGameMode('menu')}
           style={{
             ...styles.modeTab,
-            background: gameMode !== 'custom' ? theme.primary : '#1c0310',
+            background: gameMode !== 'live' ? theme.primary : '#1a020c',
             color: '#fff'
           }}
         >
-          🎮 اجرای بازی
+          🎮 بازی کمینگاه
         </button>
         <button
-          onClick={() => setGameMode('custom')}
+          onClick={() => setGameMode('live')}
           style={{
             ...styles.modeTab,
-            background: gameMode === 'custom' ? theme.primary : '#1c0310',
+            background: gameMode === 'live' ? theme.primary : '#1a020c',
             color: '#fff'
           }}
         >
-          ✍️ مدیریت چالش‌های اختصاصی ({customDares.length})
+          🚨 تابلوی جریمه‌های زنده دو طرف ({livePenalties.length})
         </button>
       </div>
 
       {/* ۱. منوی شروع */}
       {gameMode === 'menu' && (
         <div style={styles.menuPanel}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '10px' }}>
+          <div style={{ fontSize: '3.6rem', marginBottom: '10px' }}>
             {isAna ? '🦓✨🐊' : '🐊✨🦓'}
           </div>
           <h3 style={{ color: '#fff', fontSize: '1.25rem', marginBottom: '8px' }}>
-            آماده راند جدید هستید؟
+            آماده ورود به بازی هستید؟
           </h3>
           <p style={{ color: '#bbb', fontSize: '0.88rem', lineHeight: 1.8, maxWidth: '500px', margin: '0 auto 18px' }}>
-            کنترل پرش‌ها بهبود یافته و موانع با سرعت روان حرکت می‌کنند. قلب‌های شناور 💖 را برای گرفتن سپر دفاعی جمع کنید.
+            سرعت بازی آرام و لذت‌بخش شده است. در صورت باخت، بلافاصله در پنل همسرتان ثبت می‌شود که چه چالش جسورانه یا عکسی برای شما تعیین شده است!
           </p>
           <button onClick={startGame} style={{ ...styles.primaryBtn, background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})` }}>
-            شروع راند 🚀🔥
+            ورود به بازی 🚀🔥
           </button>
         </div>
       )}
 
-      {/* ۲. گیم‌پلی بازی */}
+      {/* ۲. اجرای بازی */}
       {gameMode === 'playing' && (
         <div style={styles.arena} onClick={handleJump}>
           <div style={styles.moon}>🌕</div>
@@ -259,7 +290,7 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
           <div style={{
             ...styles.player,
             bottom: `${playerY + 22}px`,
-            filter: hasShield ? 'drop-shadow(0 0 15px #00f0ff)' : 'none'
+            filter: hasShield ? 'drop-shadow(0 0 16px #00f0ff)' : 'none'
           }}>
             {hasShield && <span style={{ fontSize: '1.1rem', position: 'absolute', top: '-10px', right: '-10px' }}>🛡️</span>}
             {playerIcon}
@@ -279,55 +310,60 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
           </div>
 
           <div style={styles.jumpHint}>
-            برای پرش لمس کنید (دابل‌جامپ فعال است) 🦘
+            تپ کنید برای پرش روان (دابل‌جامپ فعال است) 🦘
           </div>
         </div>
       )}
 
-      {/* ۳. مدیریت چالش‌های دلخواه */}
-      {gameMode === 'custom' && (
+      {/* ۳. تابلوی زنده جریمه‌های ثبت‌شده برای هر دو نفر */}
+      {gameMode === 'live' && (
         <div style={{ padding: '10px 0' }}>
-          <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '8px', textAlign: 'center' }}>
-            افزودن چالش‌های کاملاً شخصی به بازی
+          <h3 style={{ color: '#ff0055', fontSize: '1.15rem', fontWeight: 900, textAlign: 'center', marginBottom: '6px' }}>
+            تابلوی زنده باخت‌ها و جریمه‌های صادرشده
           </h3>
           <p style={{ color: '#aaa', fontSize: '0.82rem', textAlign: 'center', marginBottom: '14px' }}>
-            می‌توانید هر متن، چالش یا فانتزی دلخواهی را اضافه کنید تا در صورت باخت در بازی ظاهر شود:
+            این بخش به‌صورت زنده با دیتابیس هماهنگ است و هر باخت در صفحه هر دو نفر دیده می‌شود:
           </p>
 
-          <form onSubmit={handleAddCustomDare} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            <input
-              type="text"
-              placeholder="متن چالش اختصاصی را بنویسید..."
-              value={newDareInput}
-              onChange={e => setNewDareInput(e.target.value)}
-              style={styles.inputField}
-            />
-            <button type="submit" style={{ ...styles.actionBtn, width: 'auto', padding: '10px 18px', background: theme.primary }}>
-              افزودن ➕
-            </button>
-          </form>
-
-          <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {customDares.map((d, index) => (
-              <div key={index} style={{ background: 'rgba(255,255,255,0.05)', padding: '10px 14px', borderRadius: '12px', fontSize: '0.88rem', color: '#eee' }}>
-                {index + 1}. {d}
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '280px', overflowY: 'auto' }}>
+            {livePenalties.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#777', padding: '20px' }}>هنوز جریمه‌ای ثبت نشده است.</p>
+            ) : (
+              livePenalties.map(p => (
+                <div key={p.id} style={{
+                  background: 'rgba(255, 0, 85, 0.08)',
+                  border: '1px solid rgba(255, 0, 85, 0.3)',
+                  padding: '12px 16px',
+                  borderRadius: '16px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: 900, color: theme.primary, fontSize: '0.88rem' }}>بازیکن: {p.player}</span>
+                    <span style={{ fontSize: '0.78rem', color: p.status.includes('✅') ? '#4ade80' : '#f59e0b', fontWeight: 800 }}>{p.status}</span>
+                  </div>
+                  <p style={{ color: '#fff', fontSize: '0.95rem', margin: '4px 0', lineHeight: 1.6 }}>{p.dare_text}</p>
+                  {p.photo_proof && (
+                    <div style={{ marginTop: '6px' }}>
+                      <img src={p.photo_proof} alt="proof" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #ff0055' }} />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
 
-      {/* ۴. صفحه باخت و ثبت چالش */}
+      {/* ۴. صفحه باخت و ثبت فوری عکس برای طرف مقابل */}
       {gameMode === 'gameover' && (
         <div style={styles.gameOverPanel}>
-          <span style={{ fontSize: '3rem' }}>🚨💋</span>
-          <h3 style={{ color: '#ff0055', fontSize: '1.4rem', fontWeight: 900, margin: '6px 0' }}>
-            پایان راند!
+          <span style={{ fontSize: '3.2rem' }}>🚨🔞💋</span>
+          <h3 style={{ color: '#ff0055', fontSize: '1.45rem', fontWeight: 900, margin: '6px 0' }}>
+            به دام افتادی! جریمه در صفحه طرف مقابل ثبت شد!
           </h3>
 
           <div style={styles.penaltyCard}>
-            <div style={{ color: '#ff758c', fontSize: '0.82rem', fontWeight: 800 }}>حکم ثبت‌شده برای این راند:</div>
-            <p style={{ color: '#fff', fontSize: '1.1rem', margin: '10px 0', lineHeight: 1.8, fontWeight: 800 }}>
+            <div style={{ color: '#ff758c', fontSize: '0.82rem', fontWeight: 800 }}>حکم صادرشده:</div>
+            <p style={{ color: '#fff', fontSize: '1.15rem', margin: '10px 0', lineHeight: 1.85, fontWeight: 900 }}>
               {currentPenalty}
             </p>
             <button onClick={reRollPenalty} style={styles.rerollBtn}>
@@ -335,13 +371,13 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
             </button>
           </div>
 
-          <form onSubmit={handleUploadPhoto} style={{ marginTop: '14px', textAlign: 'right' }}>
-            <label style={{ color: '#00f0ff', fontSize: '0.85rem', fontWeight: 800 }}>
-              📸 ثبت اختیاری عکس در آلبوم:
+          <form onSubmit={handleUploadProof} style={{ marginTop: '14px', textAlign: 'right' }}>
+            <label style={{ color: '#00f0ff', fontSize: '0.88rem', fontWeight: 800 }}>
+              📸 آپلود لینک عکس جهت اثبات انجام جریمه:
             </label>
             <input
               type="text"
-              placeholder="لینک عکس..."
+              placeholder="لینک مستقیم تصویر..."
               value={photoUrl}
               onChange={e => setPhotoUrl(e.target.value)}
               style={styles.inputField}
@@ -354,13 +390,13 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
               style={{ ...styles.inputField, marginTop: '8px' }}
             />
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
               <button
                 type="submit"
                 disabled={isUploading}
                 style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, #ff0055, #ff4d88)', flex: 2 }}
               >
-                {isUploading ? 'در حال ثبت... ⏳' : 'ثبت در گالری 📸'}
+                {isUploading ? 'در حال ثبت... ⏳' : 'ثبت اثبات عکس 📸💋'}
               </button>
               <button
                 type="button"
@@ -373,7 +409,7 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
 
             {uploadSuccess && (
               <p style={{ color: '#4ade80', textAlign: 'center', marginTop: '8px', fontWeight: 800 }}>
-                ✅ ثبت با موفقیت انجام شد!
+                ✅ جریمه با موفقیت انجام و در گالری ثبت شد!
               </p>
             )}
           </form>

@@ -13,18 +13,18 @@ export default function App() {
   const [authError, setAuthError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
 
-  // تغییر رمز قطعی (حذف دائمی رمز قبلی)
+  // تغییر رمز قطعی
   const [newPassInput, setNewPassInput] = useState('');
   const [passChangeSuccess, setPassChangeSuccess] = useState(false);
 
-  // سیستم موزیک پلیر پایدار با لود خودکار
+  // سیستم موزیک پلیر پایدار
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // تم‌های اروتیک و هات: velvet (مخمل و شراب)، neonNoir (سایبرپانک اروتیک)، pinkDesire (شهوت صورتی)
+  // تم‌های لوکس و جذاب
   const [currentTheme, setCurrentTheme] = useState('velvet');
 
-  // داده‌های دیتابیس
+  // داده‌های سوپابیس
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
   const [photos, setPhotos] = useState([]);
@@ -33,20 +33,20 @@ export default function App() {
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
 
-  // پل دلتنگی و شکستن غرور
+  // پل دلتنگی، معذرت‌خواهی و اعتراف زنده دوطرفه
   const [confessions, setConfessions] = useState([]);
   const [newConfession, setNewConfession] = useState('');
   const [confessionType, setConfessionType] = useState('apology');
 
-  // رادار هیت و صمیمیت لمسی
-  const [passionMeter, setPassionMeter] = useState(35);
+  // رادار هیت و صمیمیت
+  const [passionMeter, setPassionMeter] = useState(40);
   const [intimateAction, setIntimateAction] = useState(null);
 
-  // انیمیشن‌ها و ذرات
+  // ذرات معلق
   const [particles, setParticles] = useState([]);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // ثانیه‌شمار رابطه (از ۸ آگوست ۲۰۲۶)
+  // زمان‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -66,16 +66,22 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // واکشی خودکار و زنده داده‌ها
   useEffect(() => {
     if (currentUser) {
-      fetchNotes();
-      fetchPhotos();
-      fetchBucket();
-      fetchConfessions();
+      fetchAllData();
+      const timer = setInterval(fetchAllData, 6000);
+      return () => clearInterval(timer);
     }
   }, [currentUser]);
 
-  // متد هوشمند ورود
+  const fetchAllData = () => {
+    fetchNotes();
+    fetchPhotos();
+    fetchBucket();
+    fetchConfessions();
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError(false);
@@ -83,14 +89,12 @@ export default function App() {
     const localPass = localStorage.getItem(`pass_${targetLogin}`);
     const defaultPass = targetLogin === 'taha' ? '1405' : '0808';
 
-    // ۱. بررسی رمز تغییریافته در لوکال
     if (localPass) {
       if (localPass === enteredPass.trim()) {
         loginSuccess();
         return;
       }
     } else {
-      // ۲. در صورتی که رمزی ست نشده بود، بررسی دیتابیس ابری
       try {
         const { data } = await supabase
           .from('user_auth')
@@ -128,16 +132,12 @@ export default function App() {
     startAudio();
   };
 
-  // تغییر قطعی رمز و ابطال همیشگی رمز قبلی
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (!newPassInput.trim()) return;
-
     const passToSave = newPassInput.trim();
 
-    // ذخیره رمز جدید و اوررایت کامل
     localStorage.setItem(`pass_${currentUser}`, passToSave);
-
     try {
       await supabase.from('user_auth').upsert({
         username: currentUser,
@@ -145,7 +145,7 @@ export default function App() {
         updated_at: new Date().toISOString()
       });
     } catch (err) {
-      console.log('Error updating pass on cloud:', err);
+      console.error(err);
     }
 
     setPassChangeSuccess(true);
@@ -183,7 +183,7 @@ export default function App() {
   const addNote = async (e) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    const authorTag = currentUser === 'taha' ? 'طاها 🐊 (کروکودیل)' : 'آنا 🦓 (گورخر نانازی)';
+    const authorTag = currentUser === 'taha' ? 'طاها 🐊' : 'آنا 🦓';
     const { data } = await supabase.from('shared_notes').insert([{ sender: authorTag, message: newNote }]).select();
     if (data) {
       setNotes([data[0], ...notes]);
@@ -231,12 +231,13 @@ export default function App() {
     spawnParticles('🎉');
   };
 
+  // همگام‌سازی زنده عذرخواهی و اعترافات
   const fetchConfessions = async () => {
     try {
       const { data } = await supabase.from('heart_confessions').select('*').order('id', { ascending: false });
       if (data) setConfessions(data);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
@@ -255,7 +256,7 @@ export default function App() {
         triggerVibrate([50, 100]);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
@@ -266,7 +267,7 @@ export default function App() {
       spawnParticles('🫂');
       triggerVibrate([80, 80, 120]);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
 
@@ -277,7 +278,7 @@ export default function App() {
       const next = prev + 15;
       if (next >= 100) {
         triggerVibrate([100, 50, 150]);
-        setIntimateAction('⚡ ولتاژ به اوج رسید! طاها کروکودیل موظفه همین الان به مدت ۴۰ ثانیه گردن، ترقوه و لب‌های آنا رو غرق بوسه خمار و آرامش‌بخش کنه!');
+        setIntimateAction('⚡ ولتاژ به ۱۰۰٪ رسید! طاها کروکودیل موظفه همین الان به مدت ۴۰ ثانیه گردن، ترقوه و لب‌های آنا رو غرق بوسه خمار کنه!');
         return 20;
       }
       return next;
@@ -300,44 +301,40 @@ export default function App() {
   };
 
   const quotes = [
-    "طاها کروکودیل میگه: تمام خطوط تن و لمس داغ بدنت، مقدس‌ترین عبادت شب‌های منه پرنسس من 🐊🔥",
-    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر گردنت هیچ جنونی نداره 🦓✨",
-    "کروکودیل عاشق در کمینه تا صید دلبرش رو در آغوشش قفل کنه و به اوج پرواز بده 🐊💋",
-    "از ۸ آگوست ۲۰۲۶ تا ابدیت، تمام نبض و عطش و روح من مال توئه 🍓",
-    "تو سکسی‌ترین، تحریک‌کننده‌ترین و خواستنی‌ترین شاهکار تاریخی 🌸🎀"
+    "طاها کروکودیل میگه: تمام خطوط تن و لمس داغ بدنت، آرامش‌بخش‌ترین حس شب‌های منه پرنسس من 🐊🔥",
+    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون عطر گردنت هیچ شوری نداره 🦓✨",
+    "کروکودیل عاشق در کمینه تا صید دلبرش رو در آغوشش قفل کنه و به اوج ببره 🐊💋",
+    "از ۸ آگوست ۲۰۲۶ تا همیشه، تمام نبض و عطش و روح من برای توئه 🍓",
+    "تو جذاب‌ترین، آرامش‌بخش‌ترین و خواستنی‌ترین پرنسس تاریخی 🌸🎀"
   ];
 
-  // تم‌های فوق‌العاده سکسی، اروتیک و شبانه (در دسترس هر دو نفر)
   const themes = {
     velvet: {
       id: 'velvet',
       bg: 'radial-gradient(circle at 50% 25%, #2a0314 0%, #120108 50%, #050003 100%)',
-      cardBg: 'rgba(28, 4, 15, 0.88)',
+      cardBg: 'rgba(28, 4, 15, 0.9)',
       primary: '#ff0055',
       accent: '#ff3377',
       border: 'rgba(255, 0, 85, 0.5)',
-      glow: '0 0 50px rgba(255, 0, 85, 0.45)',
-      text: '#fff'
+      glow: '0 0 50px rgba(255, 0, 85, 0.45)'
     },
     neonNoir: {
       id: 'neonNoir',
       bg: 'radial-gradient(circle at 50% 40%, #170826 0%, #090212 50%, #030007 100%)',
-      cardBg: 'rgba(22, 8, 38, 0.9)',
+      cardBg: 'rgba(22, 8, 38, 0.92)',
       primary: '#a855f7',
       accent: '#ec4899',
       border: 'rgba(168, 85, 247, 0.5)',
-      glow: '0 0 50px rgba(168, 85, 247, 0.45)',
-      text: '#fff'
+      glow: '0 0 50px rgba(168, 85, 247, 0.45)'
     },
     pinkDesire: {
       id: 'pinkDesire',
       bg: 'radial-gradient(circle at 50% 30%, #38081f 0%, #1a020d 60%, #080004 100%)',
-      cardBg: 'rgba(38, 5, 20, 0.9)',
+      cardBg: 'rgba(38, 5, 20, 0.92)',
       primary: '#ff1493',
       accent: '#ff69b4',
       border: 'rgba(255, 20, 147, 0.5)',
-      glow: '0 0 50px rgba(255, 20, 147, 0.45)',
-      text: '#fff'
+      glow: '0 0 50px rgba(255, 20, 147, 0.45)'
     }
   };
 
@@ -426,7 +423,6 @@ export default function App() {
 
   return (
     <div style={{ ...styles.appContainer, background: t.bg }}>
-      {/* موزیک پلیر اروتیک و پایدار با سورس مستقیم */}
       <audio
         ref={audioRef}
         loop
@@ -434,7 +430,6 @@ export default function App() {
         src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
       />
 
-      {/* ذرات شناور رمانتیک */}
       {particles.map(p => (
         <span
           key={p.id}
@@ -452,32 +447,20 @@ export default function App() {
         </span>
       ))}
 
-      {/* پلیر شناور لوکس اروتیک */}
+      {/* موزیک پلیر پایدار */}
       <div style={{ ...styles.floatingAudioPlayer, borderColor: t.primary, boxShadow: t.glow }}>
         <button onClick={toggleMusic} style={{ ...styles.playCircle, background: t.primary }}>
           {isPlaying ? '⏸' : '▶'}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#fff' }}>
-            {isPlaying ? 'نغمه والس شبانه در حال پخش... 🎶' : 'پخش موسیقی شبانه 🎵'}
+            {isPlaying ? 'موسیقی شبانه در حال نواختن... 🎶' : 'پخش موسیقی شبانه 🎵'}
           </span>
-          {isPlaying && (
-            <div style={styles.equalizerWave}>
-              <span className="wave-bar bar-1"></span>
-              <span className="wave-bar bar-2"></span>
-              <span className="wave-bar bar-3"></span>
-              <span className="wave-bar bar-4"></span>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* هدر بالایی دارک-اروتیک */}
-      <header style={{
-        ...styles.navbar,
-        borderColor: t.border,
-        background: 'rgba(18, 2, 10, 0.88)'
-      }}>
+      {/* هدر بالایی */}
+      <header style={{ ...styles.navbar, borderColor: t.border, background: 'rgba(18, 2, 10, 0.88)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {latestHeroPhoto && (
             <div style={{ position: 'relative' }}>
@@ -503,7 +486,7 @@ export default function App() {
               {currentUser === 'taha' ? 'طاها (کروکودیل مقتدر 🐊)' : 'پرنسس آنا (گورخر نانازی 🦓)'}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
-              خلوتگاه خصوصی و اختصاصی دو‌نفره
+              خلوتگاه خصوصی و متصل به فضای ابری
             </div>
           </div>
         </div>
@@ -521,12 +504,12 @@ export default function App() {
         </div>
       </header>
 
-      {/* نوار تغییر اتمسفر لوکس و سکسی (فعال برای جفتتون) */}
+      {/* تغییر اتمسفر لوکس */}
       <div style={styles.themeSelectorBar}>
         <span style={{ fontWeight: 800, color: '#fff', fontSize: '0.85rem' }}>اتمسفر شبانه:</span>
-        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب (Dark Romance)</button>
-        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک شهوانی (Neon Noir)</button>
-        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی وحشی (Pink Desire)</button>
+        <button onClick={() => setCurrentTheme('velvet')} style={{ ...styles.themeBtn, background: '#3b051b', color: '#ff4d88', border: currentTheme === 'velvet' ? '2px solid #ff0055' : 'none' }}>🍷 مخمل و شراب</button>
+        <button onClick={() => setCurrentTheme('neonNoir')} style={{ ...styles.themeBtn, background: '#210936', color: '#c084fc', border: currentTheme === 'neonNoir' ? '2px solid #a855f7' : 'none' }}>💜 سایبرپانک نئون</button>
+        <button onClick={() => setCurrentTheme('pinkDesire')} style={{ ...styles.themeBtn, background: '#4a0828', color: '#f472b6', border: currentTheme === 'pinkDesire' ? '2px solid #ff1493' : 'none' }}>🍓 توت‌فرنگی شهوانی</button>
       </div>
 
       {/* نوار تب‌ها */}
@@ -647,14 +630,14 @@ export default function App() {
           </div>
         )}
 
-        {/* ۲. بازی اختصاصی با اتصال اتوماتیک هویت بازیکن */}
+        {/* ۲. بازی اختصاصی متصل به دیتابیس زنده دوطرفه */}
         {activeTab === 'sexy' && (
           <div key="sexy" className="slide-in-left">
             <SexyGame theme={t} onParticleTrigger={spawnParticles} currentUser={currentUser} />
           </div>
         )}
 
-        {/* ۳. صفحه پل دلتنگی و شکستن غرور */}
+        {/* ۳. پل دلتنگی و شکستن غرور کاملاً زنده برای دو طرف */}
         {activeTab === 'heart' && (
           <div key="heart" className="slide-in-right" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <div style={{ textAlign: 'center', marginBottom: '22px' }}>
@@ -663,13 +646,13 @@ export default function App() {
                 پل اعتراف، عذرخواهی و شکستن غرور
               </h2>
               <p style={{ color: '#ddd', fontSize: '0.88rem', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto' }}>
-                اینجا جاییه که هیچ غروری بینمون وجود نداره. اگر دلت گرفت، اگه ناخواسته دل همو شکوندیم، یا حرفی ته دلمون سنگینی می‌کنه، اینجا با شجاعت و عشق خالص می‌نویسیمش...
+                هر پیامی که اینجا بنویسی مستقیماً در صفحه طرف مقابل ظاهر می‌شود. اگر دلت گرفته یا پشیمانی، با شجاعت بنویس تا با آغوش حل شود...
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', justifyContent: 'center' }}>
               {[
-                { id: 'apology', label: 'معذرت‌‌خواهی از ته‌دل 🥺' },
+                { id: 'apology', label: 'معذرت‌خواهی از ته‌دل 🥺' },
                 { id: 'secret', label: 'حقیقت پنهان در دلم 🤍' },
                 { id: 'appreciation', label: 'قدردانی بدون غرور 🌸' }
               ].map(cat => (
@@ -725,9 +708,7 @@ export default function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '420px', overflowY: 'auto' }}>
               {confessions.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>
-                  هنوز اعتراف یا معذرت‌خواهی‌ای نوشته نشده. هر وقت دلت گرفت اینجا اولین حرف رو بزن 🤍
-                </p>
+                <p style={{ textAlign: 'center', color: '#888', padding: '20px' }}>هنوز پیامی نوشته نشده است 🤍</p>
               ) : (
                 confessions.map(item => (
                   <div
@@ -763,7 +744,7 @@ export default function App() {
                     <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       {item.forgiven ? (
                         <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.85rem' }}>
-                          ✅ بخشیده شد و همه‌چیز با بغل حل شد! 🫂💚
+                          ✅ بخشیده شد و با بغل حل شد! 🫂💚
                         </span>
                       ) : (
                         <button
@@ -953,14 +934,14 @@ export default function App() {
           </div>
         )}
 
-        {/* ۷. مدیریت رمز اختصاصی (با ابطال کامل رمز قبلی) */}
+        {/* ۷. مدیریت پین‌کد محرمانه */}
         {activeTab === 'vault' && (
           <div key="vault" className="slide-in-left" style={{ ...styles.card, background: t.cardBg, borderColor: t.border, boxShadow: t.glow }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>
               مدیریت پین‌کد محرمانه ({currentUser === 'taha' ? 'طاها 🐊' : 'آنا 🦓'}) 🔒
             </h2>
             <p style={{ color: '#ccc', fontSize: '0.9rem', textAlign: 'center', marginBottom: '20px' }}>
-              رمز جدید خود را وارد کنید. به محض ذخیره، رمز قبلی به‌طور کامل باطل و جایگزین می‌شود:
+              رمز جدید خود را وارد کنید. با ثبت رمز جدید، رمز قبلی به‌طور کامل باطل و جایگزین می‌شود:
             </p>
 
             <form onSubmit={handleChangePassword} style={{ maxWidth: '400px', margin: '0 auto' }}>
@@ -981,7 +962,7 @@ export default function App() {
 
             {passChangeSuccess && (
               <p style={{ color: '#10b981', textAlign: 'center', fontWeight: 800, marginTop: '14px' }}>
-                ✅ پین‌کد جدید ثبت شد و رمز قبلی کاملاً باطل گردید!
+                ✅ پین‌‌کد جدید ثبت شد و رمز قبلی کاملاً باطل گردید!
               </p>
             )}
           </div>
@@ -1015,27 +996,6 @@ export default function App() {
           0%, 100% { transform: scale(1); }
           50% { transform: scale(1.06); }
         }
-        @keyframes wave {
-          0%, 100% { height: 4px; }
-          50% { height: 16px; }
-        }
-        .equalizer-wave {
-          display: flex;
-          align-items: center;
-          gap: 3px;
-          height: 16px;
-        }
-        .wave-bar {
-          width: 3px;
-          background: #ff0055;
-          border-radius: 2px;
-          animation: wave 1s infinite ease-in-out;
-        }
-        .bar-1 { animation-delay: 0.1s; }
-        .bar-2 { animation-delay: 0.3s; }
-        .bar-3 { animation-delay: 0.2s; }
-        .bar-4 { animation-delay: 0.4s; }
-
         .interactive-animal {
           cursor: pointer;
           transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -1127,12 +1087,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  equalizerWave: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '3px',
-    height: '14px'
   },
   navbar: {
     display: 'flex',
