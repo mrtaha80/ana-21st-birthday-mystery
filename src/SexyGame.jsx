@@ -1,43 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { generateAICoupleContent } from './aiService.js';
 
 const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// جریمه‌های بی‌شمار و فوق‌العاده سکسی مختص آنا (وقتی آنا می‌بازه)
 const ANA_PENALTIES = [
   "همین الان یه سلفی با چشم‌های خمار، یقه باز و لب‌های نیمه‌باز بگیر و مستقیم بفرست 📸🫦",
   "یه عکس بدون چهره فقط از خط ترقوه و گردنت در حالی که داری با انگشت لمسش می‌‌کنی ثبت کن ✨🔥",
   "باید ۳۰ ثانیه گردن، زیر چانه و لاله گوش طاها کروکودیل رو غرق بوسه‌های خمار و داغ کنی 🐊💋",
   "یه عکس از استایل و لباسی که الان تنت داری بگیر؛ مخصوص آرشیو اختصاصی طاها 👗",
   "دست‌هات رو ببر پشت سرت؛ به طاها اجازه بده ۴۰ ثانیه مسیر ترقوه تا گلوت رو به آرومی ببوسه 🍓",
-  "با فاصله ۲ سانتی‌متری از لب‌های طاها، داغ‌ترین و وسوسه‌کننده‌ترین فانتزی که امشب تو سرته رو نجوا کن 🤫",
-  "آنا باید چشم‌هاشو ببنده و با لمس لب‌های طاها روی نقاط مختلف بدنش حدس بزنه کجاست 🙈",
-  "مسابقه زل زدن در تاریکی؛ بازنده موظفه ۱۰ تا بوسه متوالی با مکث روی لب‌های طاها بزنه 👄",
-  "سلفی از بالا روی تخت با نگاه خیره و جذاب برای کروکودیلت 🌙📸",
-  "باید به مدت ۱ دقیقه کاملاً تسلیم آغوش محکم کروکودیل باشی و دستاتو دور گردنش حلقه کنی 🐊",
-  "اعتراف جسورانه: کدوم حرکت بدنی یا لمس طاها درجا دیوونت می‌کنه؟ 🤫🔥",
-  "عکس با ژست دلبری و لب‌های گازگرفته شده با نور ملایم اتاق 💄",
-  "آنا باید پشت و کتف‌های طاها رو به مدت ۲ دقیقه با نوازش انگشت‌هاش آروم و قلقلکی کنه 💆‍♀️",
-  "بوسه طولانی فرانسوی بدون هیچ توقفی تا مرز نفس کم آوردن! 💋🔥",
-  "سلفی از زاویه آینه با لباس و ژست ناز مخصوص طاها 🪞✨"
+  "با فاصله ۲ سانتی‌متری از لب‌های طاها، داغ‌ترین فانتزی که امشب تو سرته رو نجوا کن 🤫"
 ];
 
-// جریمه‌های اقتداری، ماساژ و خدمت مختص طاها (وقتی طاها می‌بازه)
 const TAHA_PENALTIES = [
   "طاها موظفه ۵ دقیقه شانه، گردن و کمر آنا رو با روغن یا لوسیون ماساژ عمیق و ریلکس بده 💆‍♂️🔥",
   "باید پای آنا پرنسس رو آروم روی زانوت بذاری و مچ و کف پاش رو با محبت ماساژ بدی و ببوسی 👣💋",
   "سلفی جذاب و هات از بازوها یا خط فک مردونه‌ت مخصوص گالری شخصی آنا بگیر و آپلود کن 📸💪",
   "حق یک دستور مطلق برای آنا! هرچی گفت، طاها مثل کروکودیل رام‌شده فقط میگه چشم بانو! 👸🏼",
-  "طاها باید ۱ دقیقه تمام انگشت‌های دست آنا رو دونه‌دونه ببوسه و توی چشم‌هاش نگاه کنه 💍",
-  "سرو نوشیدنی یا دسر نوتلایی برای آنا در رختخواب در حالی که اون فقط لم میده 🍫🥤",
-  "طاها باید مسیر گونه تا شانه آنا رو با بوسه‌های ریز و رمانتیک طی کنه بدون این‌که فاصله‌ای بیفته 🌸",
-  "عکس با ژست جذاب در تاریکی با نور شمع یا ال‌ای‌دی برای آنا ثبت کن 🕯️📸",
-  "اعتراف مردونه طاها: امشب چه تصوری از پرنسست بدجوری ذهنتو مشغول کرده؟ 🤫🔥",
-  "آنا اجازه داره ۳ دقیقه هر جوری دلش خواست موها و ریش‌های طاها رو به هم بریزه و نوازش کنه 🦁",
-  "طاها باید آنا رو بلند کنه و توی بغلش ۳۰ ثانیه تاب بده و ببوسه 👸🏼🐊",
-  "طاها موظفه یکی از فانتزی‌های رویایی که واسه سفر دونفره‌تون داره رو با تمام جزئیات تعریف کنه 🗺️"
+  "طاها باید ۱ دقیقه تمام انگشت‌های دست آنا رو دونه‌دونه ببوسه و توی چشم‌هاش نگاه کنه 💍"
 ];
 
 export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha' }) {
@@ -46,7 +29,7 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
   const [gameState, setGameState] = useState('menu'); // menu, playing, gameover
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
-  const [heatLevel, setHeatLevel] = useState(20);
+  const [heatLevel, setHeatLevel] = useState(25);
   const [level, setLevel] = useState(1);
 
   // فیزیک حرکت و پرش
@@ -55,16 +38,16 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
   const [obstacleX, setObstacleX] = useState(100);
   const [shaking, setShaking] = useState(false);
 
-  // جریمه و آپلود
+  // جریمه و هوش مصنوعی
   const [currentPenalty, setCurrentPenalty] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [photoUrl, setPhotoUrl] = useState('');
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // آیکون کاراکتر و موانع بسته به این‌که کی بازی می‌کنه
   const playerIcon = isAna ? (jumpCount > 1 ? '🦓💨' : (jumpCount === 1 ? '🦓⚡' : '🦓')) : (jumpCount > 1 ? '🐊💨' : (jumpCount === 1 ? '🐊⚡' : '🐊'));
-  const obstacleIcon = isAna ? '🐊' : '🦓'; // آنا باید از دست تمساح فرار کنه، طاها باید گورخر چابک رو تعقیب کنه!
+  const obstacleIcon = isAna ? '🐊' : '🦓';
 
   useEffect(() => {
     let loop;
@@ -138,18 +121,20 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
     setTimeout(() => setShaking(false), 450);
     onParticleTrigger('💥');
 
-    // انتخاب جریمه بر اساس هویت کاربر لاگین‌شده
     const pool = isAna ? ANA_PENALTIES : TAHA_PENALTIES;
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    setCurrentPenalty(picked);
+    setCurrentPenalty(pool[Math.floor(Math.random() * pool.length)]);
   };
 
-  const reRollPenalty = () => {
+  // فراخوانی تولید جریمه زنده توسط هوش مصنوعی
+  const handleGenerateAiDare = async () => {
+    setIsAiGenerating(true);
+    onParticleTrigger('✨');
     if (navigator.vibrate) navigator.vibrate(30);
-    onParticleTrigger('🎲');
-    const pool = isAna ? ANA_PENALTIES : TAHA_PENALTIES;
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    setCurrentPenalty(picked);
+
+    const generated = await generateAICoupleContent('sexy_dare', currentUser);
+    setCurrentPenalty(generated);
+    setIsAiGenerating(false);
+    onParticleTrigger('🔥');
   };
 
   const handleUploadPhoto = async (e) => {
@@ -188,7 +173,6 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
       borderColor: theme.primary,
       boxShadow: theme.glow
     }}>
-      {/* هدر هوشمند بر اساس کاربر */}
       <div style={styles.headerRow}>
         <div>
           <span style={{ fontSize: '2rem', animation: 'pulse 1s infinite' }}>
@@ -199,7 +183,7 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
           </h2>
           <p style={{ color: '#aaa', fontSize: '0.82rem' }}>
             {isAna 
-              ? 'آنا حواست باشه! اگه گیر بیفتی، باید سلفی‌های فوق‌العاده سکسی یا بوسه‌های داغ تحویل طاها بدی!'
+              ? 'آنا حواست باشه! اگه گیر بیفتی، باید سلفی‌های فوق‌‌العاده سکسی یا بوسه‌های داغ تحویل طاها بدی!'
               : 'طاها اگه ببازی، باید ماساژهای عمیق و فرمانبرداری کامل از پرنسس رو اجرا کنی!'}
           </p>
         </div>
@@ -211,7 +195,6 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
         </div>
       </div>
 
-      {/* نوار ولتاژ حرارت */}
       <div style={{ margin: '14px 0 18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#ff4d88', fontWeight: 800, marginBottom: '4px' }}>
           <span>ولتاژ صمیمیت بینمون:</span>
@@ -222,7 +205,6 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
         </div>
       </div>
 
-      {/* ۱. منوی شروع متناسب با کاربر */}
       {gameState === 'menu' && (
         <div style={styles.menuPanel}>
           <div style={{ fontSize: '3.6rem', marginBottom: '12px' }}>
@@ -233,8 +215,8 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
           </h3>
           <p style={{ color: '#bbb', fontSize: '0.88rem', lineHeight: 1.8, maxWidth: '500px', margin: '0 auto 20px' }}>
             {isAna
-              ? 'با پریدن از روی کروکودیل‌ها فرار کن (دابل جامپ داری!). اگه ببازی، طاها حکم‌های اختصاصی سلفی و دلبری برات صادر می‌کنه!'
-              : 'موانع رو با قدرت رد کن! اگه ببازی، آنا حکم‌های ماساژ، تسلیم مطلق و سلفی جذاب برات آماده کرده!'}
+              ? 'با پریدن از روی کروکودیل‌ها فرار کن (دابل جامپ داری!). جریمه‌ها متصل به مغز هوش مصنوعی و سلفی زنده است!'
+              : 'موانع رو با قدرت رد کن! اگه ببازی، احکام ماساژ و خدمت توسط هوش مصنوعی برات صادر میشه!'}
           </p>
           <button onClick={startGame} style={{ ...styles.primaryBtn, background: `linear-gradient(135deg, ${theme.primary}, ${theme.accent})` }}>
             شروع راند اختصاصی 🚀🔥
@@ -242,13 +224,11 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
         </div>
       )}
 
-      {/* ۲. صحنه بازی با کاراکتر اختصاصی */}
       {gameState === 'playing' && (
         <div style={styles.arena} onClick={handleJump}>
           <div style={styles.moon}>🌕</div>
           <div style={styles.ground} />
 
-          {/* بازیکن */}
           <div style={{
             ...styles.player,
             bottom: `${playerY + 22}px`,
@@ -257,7 +237,6 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
             {playerIcon}
           </div>
 
-          {/* مانع روبه‌رو */}
           <div style={{ ...styles.obstacle, left: `${obstacleX}%` }}>
             {obstacleIcon}
           </div>
@@ -268,7 +247,6 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
         </div>
       )}
 
-      {/* ۳. صفحه باخت با جریمه ۱۰۰٪ شخصی‌سازی‌شده */}
       {gameState === 'gameover' && (
         <div style={styles.gameOverPanel}>
           <span style={{ fontSize: '3rem', animation: 'bounce 1s infinite' }}>🚨💋🔥</span>
@@ -283,12 +261,28 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
             <p style={{ color: '#fff', fontSize: '1.1rem', margin: '10px 0', lineHeight: 1.8, fontWeight: 800 }}>
               {currentPenalty}
             </p>
-            <button onClick={reRollPenalty} style={styles.rerollBtn}>
-              🎲 یه جریمه دیگه برام بیار!
+
+            <button
+              type="button"
+              onClick={handleGenerateAiDare}
+              disabled={isAiGenerating}
+              style={{
+                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                border: 'none',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: '16px',
+                fontSize: '0.85rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                marginTop: '8px',
+                boxShadow: '0 0 15px rgba(236, 72, 153, 0.5)'
+              }}
+            >
+              {isAiGenerating ? 'هوش مصنوعی داره چالش جدید میسازه... ⏳' : '🤖 جریمه نوآورانه با هوش مصنوعی!'}
             </button>
           </div>
 
-          {/* فرم آپلود عکس یا سلفی متناسب با کاربر */}
           <form onSubmit={handleUploadPhoto} style={{ marginTop: '16px', textAlign: 'right' }}>
             <label style={{ color: '#00f0ff', fontSize: '0.88rem', fontWeight: 800 }}>
               📸 {isAna ? 'آپلود سلفی یا عکس هاتِ پرنسس:' : 'آپلود سلفی یا عکس جذاب طاها:'}
@@ -314,7 +308,7 @@ export default function SexyGame({ theme, onParticleTrigger, currentUser = 'taha
                 disabled={isUploading}
                 style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, #ff0055, #ff4d88)', flex: 2 }}
               >
-                {isUploading ? 'در حال ثبت در آلبوم ابدی... ⏳' : 'ثبت عکس در آلبوم دونفره 📸💋'}
+                {isUploading ? 'در حال ثبت در آلبوم... ⏳' : 'ثبت عکس در آلبوم دونفره 📸💋'}
               </button>
               <button
                 type="button"
@@ -464,17 +458,6 @@ const styles = {
     borderRadius: '20px',
     padding: '18px',
     margin: '14px 0'
-  },
-  rerollBtn: {
-    background: 'none',
-    border: '1px solid #ff4d88',
-    color: '#ff4d88',
-    padding: '6px 14px',
-    borderRadius: '16px',
-    fontSize: '0.85rem',
-    fontWeight: 800,
-    cursor: 'pointer',
-    marginTop: '6px'
   },
   inputField: {
     width: '100%',
