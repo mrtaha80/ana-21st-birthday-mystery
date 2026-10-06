@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import SexyGame from './SexyGame.jsx';
 
 const SUPABASE_URL = 'https://ivfksnobyapzizntmgcf.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DWH7XNd9-kG0943xm4AVaA_9b5zIem0';
@@ -11,42 +12,33 @@ export default function App() {
   const [passError, setPassError] = useState(false);
   const [activeTab, setActiveTab] = useState('hub');
   
-  // سیستم صوت و آهنگ مطمئن
+  // سیستم موزیک
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
-  // تم‌ها: pink, zebra (سیاه و سفید راه راه), croc (سبز نعنایی), chick (زرد جوجویی)
+  // تم‌ها: pink, zebra, croc, chick
   const [currentTheme, setCurrentTheme] = useState('pink');
 
   // استیت‌های دیتابیس Supabase
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState('');
-  const [author, setAuthor] = useState('طاها 🦓');
+  const [author, setAuthor] = useState('طاها 🐊 (کروکودیل)');
   const [photos, setPhotos] = useState([]);
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [photoCaption, setPhotoCaption] = useState('');
   const [bucketList, setBucketList] = useState([]);
   const [newWish, setNewWish] = useState('');
 
-  // استیت‌های انیمیشن و ذرات معلق
+  // انیمیشن‌ها و ذرات معلق
   const [particles, setParticles] = useState([]);
-  const [sparkleQuote, setSparkleQuote] = useState('روی یکی از حیوونا بزن تا برات برقصن! ✨');
+  const [sparkleQuote, setSparkleQuote] = useState('روی کروکودیل، گورخر یا جوجو بزن تا ببینیشون! ✨');
 
-  // زمان‌شمار با کنتراست فوق‌العاده بالا
+  // ثانیه‌شمار رابطه از ۸ آگوست ۲۰۲۶
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
-  // استیت مینی‌گیم گورخر و جوجو (Runner)
-  const [gameActive, setGameActive] = useState(false);
-  const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0);
-  const [zebraY, setZebraY] = useState(0); // 0 زمین, 1 پرش
-  const [chickX, setChickX] = useState(100); // درصد حرکت جوجو از راست به چپ
-  const [isGameOver, setIsGameOver] = useState(false);
-
-  // محاسبه ثانیه‌شمار عاشقی (از ۸ آگوست ۲۰۲۶)
   useEffect(() => {
     const startDate = new Date('2026-08-08T00:00:00');
-    const updateCounter = () => {
+    const updateTime = () => {
       const now = new Date();
       const diff = Math.max(0, now - startDate);
       setTimeTogether({
@@ -56,12 +48,12 @@ export default function App() {
         seconds: Math.floor((diff / 1000) % 60)
       });
     };
-    updateCounter();
-    const timer = setInterval(updateCounter, 1000);
-    return () => clearInterval(timer);
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  // دریافت داده‌ها از دیتابیس آنلاین
+  // دریافت داده‌های دیتابیس
   useEffect(() => {
     if (unlocked) {
       fetchNotes();
@@ -71,7 +63,7 @@ export default function App() {
   }, [unlocked]);
 
   const fetchNotes = async () => {
-    const { data } = await supabase.from('shared_notes').select('*').order('id', { ascending: false }).limit(20);
+    const { data } = await supabase.from('shared_notes').select('*').order('id', { ascending: false }).limit(25);
     if (data) setNotes(data);
   };
 
@@ -132,18 +124,18 @@ export default function App() {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play().then(() => setIsPlaying(true)).catch(err => console.log('Audio error:', err));
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
     }
   };
 
-  // باران ذرات و ایموجی‌ها
+  // بارش ذرات ایموجی
   const spawnParticles = (emoji = '💖') => {
     const id = Date.now();
-    const batch = Array.from({ length: 14 }).map((_, i) => ({
+    const batch = Array.from({ length: 15 }).map((_, i) => ({
       id: id + i,
       emoji,
       left: Math.random() * 88 + 6,
-      size: Math.random() * 1.5 + 1.2,
+      size: Math.random() * 1.4 + 1.2,
       duration: Math.random() * 1.2 + 1.5
     }));
     setParticles(prev => [...prev, ...batch]);
@@ -152,49 +144,7 @@ export default function App() {
     }, 2800);
   };
 
-  // سیستم مینی‌گیم تعاملی گورخر دونده
-  useEffect(() => {
-    let loop;
-    if (gameActive && !isGameOver) {
-      loop = setInterval(() => {
-        setChickX(prev => {
-          if (prev <= 12 && prev >= 0 && zebraY === 0) {
-            // برخورد رخ داد
-            setIsGameOver(true);
-            return 100;
-          }
-          if (prev <= 0) {
-            setScore(s => {
-              const newScore = s + 10;
-              if (newScore > highScore) setHighScore(newScore);
-              return newScore;
-            });
-            return 100;
-          }
-          return prev - 4;
-        });
-      }, 50);
-    }
-    return () => clearInterval(loop);
-  }, [gameActive, isGameOver, zebraY, highScore]);
-
-  const jumpZebra = () => {
-    if (zebraY === 0 && gameActive && !isGameOver) {
-      setZebraY(1);
-      spawnParticles('⚡');
-      setTimeout(() => setZebraY(0), 450);
-    }
-  };
-
-  const restartGame = () => {
-    setScore(0);
-    setIsGameOver(false);
-    setChickX(100);
-    setZebraY(0);
-    setGameActive(true);
-  };
-
-  // پالت تم‌ها
+  // تعاریف تم‌ها
   const themes = {
     pink: {
       id: 'pink',
@@ -202,20 +152,15 @@ export default function App() {
       cardBg: 'rgba(255, 255, 255, 0.95)',
       primary: '#ff1493',
       accent: '#ff69b4',
-      text: '#c2185b',
-      border: '#ffb6c1',
-      pattern: 'none'
+      border: '#ffb6c1'
     },
     zebra: {
       id: 'zebra',
-      bg: 'repeating-linear-gradient(45deg, #111, #111 25px, #fff 25px, #fff 50px)',
-      cardBg: 'rgba(20, 20, 20, 0.94)',
+      bg: 'repeating-linear-gradient(45deg, #0f0f0f, #0f0f0f 25px, #ffffff 25px, #ffffff 50px)',
+      cardBg: 'rgba(18, 18, 18, 0.95)',
       primary: '#ff007f',
       accent: '#00f0ff',
-      text: '#ffffff',
-      border: '#ff007f',
-      counterBox: '#222',
-      pattern: 'zebra'
+      border: '#ff007f'
     },
     croc: {
       id: 'croc',
@@ -223,9 +168,7 @@ export default function App() {
       cardBg: 'rgba(255, 255, 255, 0.95)',
       primary: '#1b5e20',
       accent: '#4caf50',
-      text: '#1b5e20',
-      border: '#81c784',
-      pattern: 'none'
+      border: '#81c784'
     },
     chick: {
       id: 'chick',
@@ -233,32 +176,30 @@ export default function App() {
       cardBg: 'rgba(255, 255, 255, 0.95)',
       primary: '#e65100',
       accent: '#fbc02d',
-      text: '#e65100',
-      border: '#ffd54f',
-      pattern: 'none'
+      border: '#ffd54f'
     }
   };
 
   const t = themes[currentTheme];
 
   const quotes = [
-    "آنا، گورخر راه‌راه قصه‌مون میگه زندگی بدون تو سیاه و سفیده، با تو رنگین‌کمونه! 🦓🌈",
-    "کروکودیل عاشق تمام مرواریدهای اصفهان رو تقدیم خنده‌هات می‌کنه! 🐊💖",
-    "جوجو طلایی با سرعت نور بال می‌زنه تا به آغوش پرنسس برسه! 🐥✨",
-    "ضربان قلب طاها از ۸ آگوست ۲۰۲۶ روی فرکانس چشمات تنظیم شده 🍓",
-    "تو زیباترین و خارق‌العاده‌ترین اتفاق کل کهکشانی پروانه‌ام 🌸"
+    "طاها کروکودیل میگه: تمام وسعت این مرداب و کهکشان فدای یه لبخند آنا گورخر نازم! 🐊💖",
+    "آنای قشنگم، راه‌راه‌های گورخری قصه‌مون بدون چشم‌هات هیچ نوری نداره 🦓✨",
+    "جوجو طلایی کوچولو آروم سرشو می‌ذاره رو شونه کروکودیل مهربون 🐥💤",
+    "از ۸ آگوست ۲۰۲۶ تا همیشه، کل ضربان‌های قلب طاها به نام تو کوک شده 🍓",
+    "تو شیرین‌ترین و خوشگل‌ترین اتفاق تاریخ کائناتی پرنسس 🌸🎀"
   ];
 
   if (!unlocked) {
     return (
       <div style={styles.gateWrapper}>
         <div style={styles.gateCard}>
-          <div style={{ fontSize: '4rem', animation: 'bounce 1.5s infinite' }}>🦓🐊🐥💖</div>
-          <h1 style={{ color: '#ff1493', fontSize: '1.9rem', fontWeight: 900, margin: '14px 0 6px' }}>
-            قلمرو کهکشانی طاها و آنا
+          <div style={{ fontSize: '3.8rem', animation: 'bounce 1.5s infinite' }}>🐊💖🦓🐥</div>
+          <h1 style={{ color: '#ff1493', fontSize: '1.85rem', fontWeight: 900, margin: '14px 0 6px' }}>
+            قلمرو اختصاصی طاها و آنا
           </h1>
           <p style={{ color: '#ff69b4', fontSize: '0.95rem', marginBottom: '22px' }}>
-            رمز اختصاصی دروازه رو بزن پرنسس قشنگم ✨
+            کلید ورود به دنیای کروکودیل عاشق و گورخر ناز رو وارد کن 🗝️✨
           </p>
           <form onSubmit={(e) => {
             e.preventDefault();
@@ -277,7 +218,7 @@ export default function App() {
               onChange={(e) => setPasscode(e.target.value)}
               style={styles.gateInput}
             />
-            <button type="submit" style={styles.gateBtn}>ورود به سرزمین شگفتی‌ها 🗝️🎀</button>
+            <button type="submit" style={styles.gateBtn}>ورود به سرزمینمون 🗝️🎀</button>
           </form>
           {passError && <p style={{ color: '#ff0055', marginTop: '12px', fontWeight: 'bold' }}>رمز اشتباهه خوشگلم! دوباره بزن 🥺</p>}
         </div>
@@ -287,17 +228,11 @@ export default function App() {
 
   return (
     <div style={{ ...styles.appContainer, background: t.bg }}>
-      {/* فایل صوتی بدون قطعی (رمانتیک پیانو والس فرانسه) */}
       <audio
         ref={audioRef}
         loop
         preload="auto"
-        src="https://actions.google.com/sounds/v1/ambiences/outdoor_market.ogg"
-        onError={() => {
-          if (audioRef.current) {
-            audioRef.current.src = "https://cdn.pixabay.com/download/audio/2022/11/06/audio_c35f2991cf.mp3?filename=waltz-of-the-flowers-romantic-piano-126231.mp3";
-          }
-        }}
+        src="https://cdn.pixabay.com/download/audio/2022/11/06/audio_c35f2991cf.mp3?filename=waltz-of-the-flowers-romantic-piano-126231.mp3"
       />
 
       {/* ذرات شناور بارانی */}
@@ -329,37 +264,37 @@ export default function App() {
       </div>
 
       {/* هدر بالایی */}
-      <header style={{ ...styles.navbar, borderColor: t.border, background: t.id === 'zebra' ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)' }}>
+      <header style={{ ...styles.navbar, borderColor: t.border, background: t.id === 'zebra' ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.92)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '2rem', animation: 'wiggle 2s infinite' }}>🦓🐊🐥</span>
-          <span style={{ fontWeight: 900, color: t.primary, fontSize: '1.25rem' }}>
-            دنیای اختصاصی طاها و آنا
+          <span style={{ fontSize: '2rem', animation: 'wiggle 2s infinite' }}>🐊💖🦓</span>
+          <span style={{ fontWeight: 900, color: t.primary, fontSize: '1.2rem' }}>
+            Taha (Croc 🐊) & Ana (Zebra 🦓)
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => spawnParticles('🦓')} style={styles.badgeBtn}>🦓 باران راه‌راه</button>
-          <button onClick={() => spawnParticles('🐊')} style={styles.badgeBtn}>🐊 باران کروکودیل</button>
-          <button onClick={() => spawnParticles('🐥')} style={styles.badgeBtn}>🐥 باران جوجو</button>
+          <button onClick={() => spawnParticles('🐊')} style={styles.badgeBtn}>🐊 کروکودیل</button>
+          <button onClick={() => spawnParticles('🦓')} style={styles.badgeBtn}>🦓 گورخر</button>
+          <button onClick={() => spawnParticles('🐥')} style={styles.badgeBtn}>🐥 جوجو</button>
         </div>
       </header>
 
       {/* نوار انتخاب تم‌های زنده */}
       <div style={styles.themeSelectorBar}>
-        <span style={{ fontWeight: 800, color: t.id === 'zebra' ? '#fff' : '#444', fontSize: '0.9rem' }}>تغییر حال و هوای تم:</span>
+        <span style={{ fontWeight: 800, color: t.id === 'zebra' ? '#fff' : '#333', fontSize: '0.9rem' }}>تغییر حال و هوای تم:</span>
         <button onClick={() => setCurrentTheme('pink')} style={{ ...styles.themeBtn, background: '#ffccd5', border: currentTheme === 'pink' ? '3px solid #ff1493' : 'none' }}>🌸 صورتی توت‌فرنگی</button>
         <button onClick={() => setCurrentTheme('zebra')} style={{ ...styles.themeBtn, background: '#111', color: '#fff', border: currentTheme === 'zebra' ? '3px solid #00f0ff' : '1px solid #fff' }}>🦓 گورخر راه‌راه بلک</button>
         <button onClick={() => setCurrentTheme('croc')} style={{ ...styles.themeBtn, background: '#c8e6c9', border: currentTheme === 'croc' ? '3px solid #1b5e20' : 'none' }}>🐊 مرداب کروکودیل</button>
         <button onClick={() => setCurrentTheme('chick')} style={{ ...styles.themeBtn, background: '#fff9c4', border: currentTheme === 'chick' ? '3px solid #e65100' : 'none' }}>🐥 مزرعه جوجو</button>
       </div>
 
-      {/* تب‌های جابه‌جایی صفحات */}
+      {/* تب‌های جابه‌‌جایی صفحات */}
       <nav style={styles.navTabs}>
         {[
           { id: 'hub', label: 'شمارنده و حیوانات ⏳' },
-          { id: 'game', label: 'مینی‌گیم گورخر و جوجو 🎮' },
+          { id: 'sexy', label: 'بازی کمین کروکودیل 🔥' },
           { id: 'gallery', label: 'آلبوم پولاروید سه‌بعدی 📸' },
-          { id: 'notes', label: 'صندوقچه یادداشت‌های زنده 💌' },
-          { id: 'bucket', label: 'دفترچه آرزوها و سفرها 🌟' }
+          { id: 'notes', label: 'پچ‌پچ‌های زنده مخفی 💌' },
+          { id: 'bucket', label: 'دفترچه آرزوهای دوتایی 🌟' }
         ].map(item => (
           <button
             key={item.id}
@@ -379,14 +314,14 @@ export default function App() {
 
       {/* محتوای صفحات */}
       <main style={styles.mainContent}>
-        {/* ۱. تب هاب: ثانیه‌شمار با ارقام واضح و کنتراست فوق‌العاده بالا */}
+        {/* ۱. تب اصلی با شمارنده پرکنتراست و انیمیشن حیوانات */}
         {activeTab === 'hub' && (
           <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>
-              ثانیه‌شمار دنیای بی‌پایان ما 💕
+              ثانیه‌شمار قلمرو بی‌پایان ما 💕
             </h2>
             
-            {/* شمارنده بازطراحی‌شده با اعداد کاملاً خوانا */}
+            {/* شمارنده کاملاً شفاف و خوانا */}
             <div style={styles.counterGrid}>
               <div style={{ ...styles.counterBox, background: t.id === 'zebra' ? '#000' : '#fff', borderColor: t.primary }}>
                 <span style={{ ...styles.counterNum, color: t.id === 'zebra' ? '#00f0ff' : '#d81b60' }}>
@@ -417,22 +352,22 @@ export default function App() {
               </div>
             </div>
 
-            {/* بخش کلیکی حیوانات */}
+            {/* بخش انیمیشنی کلیک روی کاراکترها */}
             <div style={{ textAlign: 'center', margin: '30px 0 10px' }}>
               <div style={{ fontSize: '3.6rem', display: 'flex', justifyContent: 'center', gap: '25px' }}>
-                <span className="interactive-animal" onClick={() => spawnParticles('🦓')}>🦓</span>
-                <span className="interactive-animal" onClick={() => spawnParticles('💖')}>💖</span>
-                <span className="interactive-animal" onClick={() => spawnParticles('🐥')}>🐥</span>
                 <span className="interactive-animal" onClick={() => spawnParticles('🐊')}>🐊</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('💖')}>💖</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('🦓')}>🦓</span>
+                <span className="interactive-animal" onClick={() => spawnParticles('🐥')}>🐥</span>
               </div>
               <p style={{ color: t.id === 'zebra' ? '#00f0ff' : t.primary, fontWeight: 800, marginTop: '10px' }}>
                 روی هر حیوون کلیک کن تا روحش تو صفحه پرواز کنه! 🌟
               </p>
             </div>
 
-            {/* باکس پیام محبت‌آمیز */}
+            {/* کارت پیام اختصاصی */}
             <div style={{ background: t.id === 'zebra' ? '#111' : '#fff', padding: '20px', borderRadius: '22px', border: `2px dashed ${t.primary}`, textAlign: 'center' }}>
-              <p style={{ fontSize: '1.1rem', color: t.id === 'zebra' ? '#fff' : t.primary, fontWeight: 800, lineHeight: 1.8 }}>
+              <p style={{ fontSize: '1.08rem', color: t.id === 'zebra' ? '#fff' : t.primary, fontWeight: 800, lineHeight: 1.8 }}>
                 {sparkleQuote}
               </p>
               <button
@@ -445,85 +380,12 @@ export default function App() {
           </div>
         )}
 
-        {/* ۲. تب مینی‌گیم فوق‌العاده جذاب گورخر دونده (Zebra Runner) */}
-        {activeTab === 'game' && (
-          <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
-            <h2 style={{ ...styles.cardTitle, color: t.primary }}>
-              مینی‌گیم تعاملی: پرش گورخر از روی جوجوها! 🎮🦓
-            </h2>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginBottom: '10px', color: t.id === 'zebra' ? '#fff' : '#333' }}>
-              <span style={{ fontWeight: 800 }}>امتیاز فعلی: {score}</span>
-              <span style={{ fontWeight: 800, color: t.primary }}>بالاترین رکورد: {highScore}</span>
-            </div>
-
-            {/* صحنه بازی با انیمیشن */}
-            <div style={{
-              position: 'relative',
-              height: '180px',
-              background: t.id === 'zebra' ? '#000' : 'linear-gradient(180deg, #e0f7fa 0%, #fff 100%)',
-              border: `3px solid ${t.primary}`,
-              borderRadius: '20px',
-              overflow: 'hidden'
-            }}>
-              {/* زمین مسابقه */}
-              <div style={{ position: 'absolute', bottom: 0, width: '100%', height: '25px', background: t.id === 'zebra' ? '#333' : '#a5d6a7' }} />
-
-              {/* گورخر */}
-              <div style={{
-                position: 'absolute',
-                left: '20px',
-                bottom: zebraY === 1 ? '75px' : '20px',
-                fontSize: '3rem',
-                transition: 'bottom 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-              }}>
-                🦓
-              </div>
-
-              {/* جوجو که از روبه‌رو می‌آید */}
-              <div style={{
-                position: 'absolute',
-                left: `${chickX}%`,
-                bottom: '22px',
-                fontSize: '2rem'
-              }}>
-                🐥
-              </div>
-
-              {isGameOver && (
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(0,0,0,0.75)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff'
-                }}>
-                  <h3 style={{ fontSize: '1.4rem', color: '#ff1493', marginBottom: '8px' }}>باختی نازنینم! 🥺</h3>
-                  <p style={{ marginBottom: '12px' }}>گورخر به جوجو رسید و بغلش کرد!</p>
-                  <button onClick={restartGame} style={{ ...styles.actionBtn, width: 'auto', padding: '10px 24px', background: t.primary }}>
-                    شروع دوباره مسابقه 🔄
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '20px' }}>
-              {!gameActive ? (
-                <button onClick={restartGame} style={{ ...styles.actionBtn, background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
-                  شروع بازی پرش گورخر 🚀
-                </button>
-              ) : (
-                <button onClick={jumpZebra} style={{ ...styles.actionBtn, fontSize: '1.2rem', padding: '16px', background: `linear-gradient(135deg, ${t.primary}, ${t.accent})` }}>
-                  بپر! (Space / کلیک) 🦘
-                </button>
-              )}
-            </div>
-          </div>
+        {/* ۲. بازی اختصاصی آتشین کمین کروکودیل */}
+        {activeTab === 'sexy' && (
+          <SexyGame theme={t} onParticleTrigger={spawnParticles} />
         )}
 
-        {/* ۳. گالری پولاروید سه‌بعدی متحرک */}
+        {/* ۳. گالری پولاروید سه‌بعدی */}
         {activeTab === 'gallery' && (
           <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
             <h2 style={{ ...styles.cardTitle, color: t.primary }}>آلبوم پولاروید نوستالژیک ما 📸🎀</h2>
@@ -580,16 +442,17 @@ export default function App() {
         {/* ۴. یادداشت‌های آنلاین Supabase */}
         {activeTab === 'notes' && (
           <div style={{ ...styles.card, background: t.cardBg, borderColor: t.border }}>
-            <h2 style={{ ...styles.cardTitle, color: t.primary }}>صندوق پچ‌پچ‌ها و نامه‌های زنده 💌</h2>
+            <h2 style={{ ...styles.cardTitle, color: t.primary }}>صندوقچه پچ‌پچ‌ها و نامه‌های زنده 💌</h2>
             <form onSubmit={addNote} style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                 <select value={author} onChange={e => setAuthor(e.target.value)} style={styles.selectField}>
-                  <option value="طاها 🦓 (کروکودیل مهربون)">طاها 🦓</option>
-                  <option value="آنا 🐥 (جوجوی قشنگم)">آنا 🐥</option>
+                  <option value="طاها 🐊 (کروکودیل مهربون)">طاها 🐊 (کروکودیل)</option>
+                  <option value="آنا 🦓 (گورخر قشنگم)">آنا 🦓 (گورخر)</option>
+                  <option value="آنا 🐥 (جوجو نازم)">آنا 🐥 (جوجو)</option>
                 </select>
                 <input
                   type="text"
-                  placeholder="یه جمله خوشگل برام بنویس..."
+                  placeholder="حرف دلتو بنویس تا آنلاین ثبت بشه..."
                   value={newNote}
                   onChange={e => setNewNote(e.target.value)}
                   style={{ ...styles.inputField, flex: 1 }}
@@ -608,9 +471,9 @@ export default function App() {
                     padding: '12px 18px',
                     borderRadius: '18px',
                     maxWidth: '80%',
-                    alignSelf: n.sender.includes('آنا') ? 'flex-end' : 'flex-start',
-                    background: n.sender.includes('آنا') ? '#fff0f6' : '#f0f9ff',
-                    border: `2px solid ${n.sender.includes('آنا') ? '#ffccd5' : '#bae6fd'}`,
+                    alignSelf: (n.sender.includes('آنا') || n.sender.includes('گورخر') || n.sender.includes('جوجو')) ? 'flex-end' : 'flex-start',
+                    background: (n.sender.includes('آنا') || n.sender.includes('گورخر')) ? '#fff0f6' : '#f0f9ff',
+                    border: `2px solid ${(n.sender.includes('آنا') || n.sender.includes('گورخر')) ? '#ffccd5' : '#bae6fd'}`,
                     boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
                   }}
                 >
@@ -801,7 +664,7 @@ const styles = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 16px',
-    background: 'rgba(0, 0, 0, 0.1)',
+    background: 'rgba(0, 0, 0, 0.08)',
     flexWrap: 'wrap'
   },
   themeBtn: {
