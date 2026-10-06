@@ -301,9 +301,8 @@ export default function App() {
     if (!text || !text.trim()) return;
 
     try {
-      // الصاق جریمه به پیام در دیتابیس
       await supabase.from('heart_confessions').update({
-        message: `${confessions.find(c => c.id === id).message} \n\n[⚡ جریمه تعیین‌شده: ${text.trim()}]`
+        message: `${confessions.find(c => c.id === id).message} \n\n[⚡ جریمه دست‌نویس تعیین‌شده: ${text.trim()}]`
       }).eq('id', id);
 
       setPenaltyInputs(prev => ({ ...prev, [id]: '' }));
@@ -844,7 +843,7 @@ export default function App() {
                       </p>
 
                       {/* بخش تعیین تنبیه برای پیام طرف مقابل */}
-                      {!isMine && !item.message.includes('جریمه تعیین‌شده') && !item.forgiven && (
+                      {!isMine && !item.message.includes('جریمه دست‌نویس تعیین‌شده') && !item.forgiven && (
                         <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,0,85,0.1)', borderRadius: '14px', border: '1px dashed #ff0055' }}>
                           <span style={{ color: '#00f0ff', fontSize: '0.82rem', fontWeight: 800 }}>
                             برای این پیام یک جریمه/تنبیه تعیین کن:
@@ -973,7 +972,7 @@ export default function App() {
             <form onSubmit={addPhoto} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '25px' }}>
               <input
                 type="text"
-                placeholder="لینک مستقیم تصویر دونفره‌‌‌‌مون..."
+                placeholder="لینک مستقیم تصویر دونفرهمون..."
                 value={newPhotoUrl}
                 onChange={e => setNewPhotoUrl(e.target.value)}
                 style={styles.inputField}
@@ -1068,7 +1067,7 @@ export default function App() {
             <form onSubmit={addBucketItem} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
               <input
                 type="text"
-                placeholder="یه قرار جدید تو تهران یا اصفان یا یه سفر باحال بنویس..."
+                placeholder="یه قرار جدید تو تهران یا اصفهان یا یه سفر باحال بنویس..."
                 value={newWish}
                 onChange={e => setNewWish(e.target.value)}
                 style={{ ...styles.inputField, flex: 1 }}
